@@ -1,0 +1,71 @@
+{
+  "name": "sinking-antd",
+  "version": "1.0.0",
+  "description": "一个基于 Ant Design 和 antd-style 构建的企业级 React 组件库，专为中后台应用设计",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./style": "./dist/index.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "npm run build",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "react",
+    "components",
+    "antd",
+    "ui",
+    "frontend",
+    "typescript",
+    "中后台",
+    "企业级"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "antd": "^5.27.4",
+    "antd-style": "^3.7.1",
+    "dayjs": "^1.11.13"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.3"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": {
+    "url": ""
+  },
+  "homepage": ""
+}
+

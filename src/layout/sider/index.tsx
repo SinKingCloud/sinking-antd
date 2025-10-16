@@ -76,6 +76,8 @@ const useStyles = createStyles(({token, isDarkMode}): any => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            flexWrap: "nowrap",
+            whiteSpace: "nowrap",
         },
         logoClose: {
             margin: "0px -10px",

@@ -772,29 +772,29 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
     }, [data, rowKey, rowSelection]);
 
     const handleSelectChange = useCallback((newSelectedRowKeys: React.Key[], newSelectedRows: any[]) => {
-            setSelectedRowKeys(newSelectedRowKeys);
-            setSelectedRows(newSelectedRows);
-            if (rowSelection && typeof rowSelection === 'object' && rowSelection?.onChange) {
-                rowSelection?.onChange(newSelectedRowKeys, newSelectedRows);
-            }
+        setSelectedRowKeys(newSelectedRowKeys);
+        setSelectedRows(newSelectedRows);
+        if (rowSelection && typeof rowSelection === 'object' && rowSelection?.onChange) {
+            rowSelection?.onChange(newSelectedRowKeys, newSelectedRows);
+        }
     }, [rowSelection]);
 
     const handleSelect = useCallback((record: any, selected: boolean, selectedRows: any[]) => {
-            if (rowSelection && typeof rowSelection === 'object' && rowSelection?.onSelect) {
-                rowSelection?.onSelect(record, selected, selectedRows);
-            }
+        if (rowSelection && typeof rowSelection === 'object' && rowSelection?.onSelect) {
+            rowSelection?.onSelect(record, selected, selectedRows);
+        }
     }, [rowSelection]);
 
     const handleSelectAll = useCallback((selected: boolean, selectedRows: any[], changeRows: any[]) => {
-            if (rowSelection && typeof rowSelection === 'object' && rowSelection?.onSelectAll) {
-                rowSelection?.onSelectAll(selected, selectedRows, changeRows);
-            }
+        if (rowSelection && typeof rowSelection === 'object' && rowSelection?.onSelectAll) {
+            rowSelection?.onSelectAll(selected, selectedRows, changeRows);
+        }
     }, [rowSelection]);
 
     const handleSelectInvert = useCallback((selectedRowKeys: React.Key[]) => {
-            if (rowSelection && typeof rowSelection === 'object' && rowSelection?.onSelectInvert) {
-                rowSelection?.onSelectInvert(selectedRowKeys);
-            }
+        if (rowSelection && typeof rowSelection === 'object' && rowSelection?.onSelectInvert) {
+            rowSelection?.onSelectInvert(selectedRowKeys);
+        }
     }, [rowSelection]);
 
     const getRowSelection = useMemo((): any => {
@@ -945,7 +945,7 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
                     <Table
                         rowKey={rowKey}
                         className={styles.table}
-                        style={{overflowX: "auto", whiteSpace: "nowrap"}}
+                        style={{whiteSpace: "nowrap"}}
                         scroll={{x: true, y: virtual ? 500 : undefined}}
                         virtual={virtual}
                         {...tableProps}

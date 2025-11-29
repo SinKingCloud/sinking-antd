@@ -628,7 +628,7 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
                         processing: 'processing'
                     };
                     return <Tag color={colorMap[color] || color || "default"}
-                                bordered={false} {...props}>{label}</Tag>;
+                                variant={"filled"} {...props}>{label}</Tag>;
                 }
                 return label;
             }

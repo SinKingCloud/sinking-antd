@@ -56,7 +56,7 @@ const Body: React.FC<BodyProps> = React.memo((props) => {
                 <div className={cx("ant-layout-body", className || body)}>
                     <Animation animate={animation ? Animate.FadeUp : Animate.None}>
                         {space ? (
-                            <Space direction="vertical" size="middle" className={gutter}>
+                            <Space orientation="vertical" size="middle" className={gutter}>
                                 {children}
                             </Space>
                         ) : children}

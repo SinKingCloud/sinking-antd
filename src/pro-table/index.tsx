@@ -96,16 +96,16 @@ export type ProTableProps = {
  * 用于父组件通过 ref 调用表格的方法
  */
 export interface ProTableRef {
-    searchForm?: FormInstance | any; // 搜索表单实例（可用于获取/设置表单值）
-    refreshTableData?: () => void | any; // 刷新表格数据（保持当前页码和搜索条件）
-    resetTableData?: () => void | any; // 重置表格数据（重置到第一页和默认搜索条件）
-    getTableData?: () => any; // 获取当前表格数据
-    getSelectedRowKeys?: () => React.Key[]; // 获取选中的行 keys
-    getSelectedRows?: () => any[]; // 获取选中的行数据
-    setSelectedRowKeys?: (keys: React.Key[]) => void; // 设置选中的行 keys
-    clearSelectedRows?: () => void; // 清空所有选中行
-    invertSelectedRow?: () => void; // 反选选中行
-    allSelectedRow?: () => void; // 全选所有行
+    searchForm: FormInstance | any; // 搜索表单实例（可用于获取/设置表单值）
+    refreshTableData: () => void | any; // 刷新表格数据（保持当前页码和搜索条件）
+    resetTableData: () => void | any; // 重置表格数据（重置到第一页和默认搜索条件）
+    getTableData: () => any; // 获取当前表格数据
+    getSelectedRowKeys: () => React.Key[]; // 获取选中的行 keys
+    getSelectedRows: () => any[]; // 获取选中的行数据
+    setSelectedRowKeys: (keys: React.Key[]) => void; // 设置选中的行 keys
+    clearSelectedRows: () => void; // 清空所有选中行
+    invertSelectedRow: () => void; // 反选选中行
+    allSelectedRow: () => void; // 全选所有行
 }
 
 /**

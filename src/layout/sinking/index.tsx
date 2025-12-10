@@ -311,15 +311,15 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
         const layoutMode = mode === "horizontal" ? mode : "inline";
         const theme = menuTheme === "dark" ? menuTheme : "light";
         // 转换 matchedRoutes 为 string[] 格式（如果不是的话）
-        const routePaths = Array.isArray(matchedRoutes) 
-            ? (typeof matchedRoutes[0] === 'string' 
-                ? matchedRoutes 
+        const routePaths = Array.isArray(matchedRoutes)
+            ? (typeof matchedRoutes[0] === 'string'
+                ? matchedRoutes
                 : matchedRoutes.map((route: any) => route?.pathname || route))
             : [];
-        
-        return <Sider classNames={menuClassNames} 
-                      layout={layoutMode} 
-                      theme={theme} 
+
+        return <Sider classNames={menuClassNames}
+                      layout={layoutMode}
+                      theme={theme}
                       collapsed={collapsed}
                       pathname={pathname}
                       matchedRoutes={routePaths}
@@ -349,7 +349,7 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
     /**
      * 移动端抽屉
      */
-    const drawer = <Drawer placement="left" closable={false} open={open} width={menuUnCollapsedWidth}
+    const drawer = <Drawer placement="left" closable={false} open={open} size={menuUnCollapsedWidth}
                            classNames={{body: drawMenu}}
                            onClose={() => {
                                setOpen(false)
@@ -375,7 +375,7 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
                         right={headerRight}/>
             </Layout.Header>}
             <Layout.Content className={cx(inlineContent, flowLayout && flowContent)}>
-                <BreadCrumb 
+                <BreadCrumb
                     enabled={breadCrumb}
                     items={breadCrumbItems}
                     hideBreadCrumb={hideBreadCrumb}
@@ -409,7 +409,7 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
             }
         </Layout.Header>
         <Layout.Content className={cx(horizontalContent, flowLayout && flowContent)}>
-            <BreadCrumb 
+            <BreadCrumb
                 enabled={breadCrumb}
                 items={breadCrumbItems}
                 hideBreadCrumb={hideBreadCrumb}

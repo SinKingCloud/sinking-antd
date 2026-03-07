@@ -11,9 +11,11 @@ const useStyles = createStyles(({css}): any => {
             padding: 10px;
         `,
         load: {
-            margin: "0 auto",
             width: "100%",
-            lineHeight: "80vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "80vh",
         },
         gutter: {
             display: "flex"

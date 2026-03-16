@@ -131,7 +131,7 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
             display: "block"
         },
         ".ant-select": {
-            ".ant-select-selector": {
+            ".ant-select-content": {
                 fontSize: fontSize,
                 transition: "background-color 0.3s ease",
                 color: fontColor,
@@ -142,6 +142,7 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
         },
         ".ant-pagination-options-quick-jumper": {
             "input": {
+                fontSize: fontSize,
                 color: fontColor,
                 borderColor: "transparent",
                 borderRadius: token?.borderRadius + "px !important",

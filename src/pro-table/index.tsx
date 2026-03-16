@@ -131,13 +131,16 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
             display: "block"
         },
         ".ant-select": {
-            ".ant-select-content": {
-                fontSize: fontSize,
-                transition: "background-color 0.3s ease",
-                color: fontColor,
-                borderColor: "transparent !important",
-                borderRadius: token?.borderRadius + "px !important",
-                backgroundColor: backgroundColor
+            ".ant-select": {
+                lineHeight: "calc(var(--ant-pagination-item-size-actual) - 2px)",
+                height: "var(--ant-pagination-item-size-actual)",
+                ".ant-select-content": {
+                    fontSize: fontSize,
+                    transition: "background-color 0.3s ease",
+                    color: fontColor,
+                    borderColor: "transparent !important",
+                    borderRadius: token?.borderRadius + "px !important",
+                },
             },
         },
         ".ant-pagination-options-quick-jumper": {

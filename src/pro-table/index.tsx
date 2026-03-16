@@ -128,9 +128,7 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
             }
         },
         ".ant-pagination-options": {
-            display: "block"
-        },
-        ".ant-select": {
+            display: "block",
             ".ant-select": {
                 lineHeight: "calc(var(--ant-pagination-item-size-actual) - 2px)",
                 height: "var(--ant-pagination-item-size-actual)",
@@ -142,16 +140,16 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
                     borderRadius: token?.borderRadius + "px !important",
                 },
             },
+            ".ant-pagination-options-quick-jumper": {
+                "input": {
+                    fontSize: fontSize,
+                    color: fontColor,
+                    borderColor: "transparent",
+                    borderRadius: token?.borderRadius + "px !important",
+                    backgroundColor: backgroundColor,
+                },
+            }
         },
-        ".ant-pagination-options-quick-jumper": {
-            "input": {
-                fontSize: fontSize,
-                color: fontColor,
-                borderColor: "transparent",
-                borderRadius: token?.borderRadius + "px !important",
-                backgroundColor: backgroundColor,
-            },
-        }
     }
     const btn = {
         fontSize: fontSize + "px",

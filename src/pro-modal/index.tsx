@@ -1,5 +1,5 @@
 // noinspection TypeScriptValidateTypes
-import React, {forwardRef, useImperativeHandle, useState} from "react";
+import React, {forwardRef, ReactNode, useImperativeHandle, useState} from "react";
 import {Modal, ModalProps} from "antd";
 import {useTheme} from "../theme";
 
@@ -108,7 +108,9 @@ const ProModal = forwardRef<ProModalRef, ProModalProps>((props, ref): any => {
             okText={okText}
             okType={okType}
             width={adjustedWidth}
-            maskClosable={false}
+            mask={{
+                closable: false
+            }}
             {...modalProps}
         >
             {children}

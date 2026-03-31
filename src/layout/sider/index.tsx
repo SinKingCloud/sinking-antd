@@ -108,6 +108,7 @@ export type SiderProps = {
     collapsed?: boolean; // 菜单是否折叠
     menus?: any; // 菜单列表数据
     classNames?: any; // 菜单自定义样式类名
+    headerClassNames?: any; // 菜单头部自定义样式类名
     pathname?: string; // 当前路由路径
     matchedRoutes?: string[]; // 匹配的路由路径列表
     onNavigate?: (path: string) => void; // 路由导航回调函数
@@ -137,6 +138,7 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
         menuBottomBtnText = null,
         onMenuBottomBtnClick,
         classNames,
+        headerClassNames,
         layout = "inline",
         theme = "light"
     } = props;
@@ -232,7 +234,7 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
     return (
         <>
             {layout === "inline" ? (
-                <Layout className={cx(left, getColor)}>
+                <Layout className={cx(left, getColor, headerClassNames)}>
                     <Layout.Header className={cx(menuTop, getColor)} onClick={handleLogoClick}>
                         {(mobile || (!mobile && !collapsed)) && unCollapsedLogo?.(!token?.isDarkMode)}
                         {!mobile && collapsed && collapsedLogo?.(token?.isDarkMode)}

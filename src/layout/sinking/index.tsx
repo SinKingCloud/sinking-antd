@@ -154,6 +154,7 @@ export type BreadCrumbItem = {
  */
 export type LayoutProps = {
     ref?: React.Ref<SinKingRef>; // 组件引用
+    rootClassName?: string; // 根元素自定义样式类名
     loading?: boolean; // 是否显示加载状态
     breadCrumb?: boolean; // 是否启用面包屑
     breadCrumbItems?: BreadCrumbItem[]; // 面包屑项目列表
@@ -162,6 +163,7 @@ export type LayoutProps = {
     menuUnCollapsedWidth?: number; // 菜单展开时的宽度（默认220）
     menus?: any; // 菜单列表数据
     menuClassNames?: any; // 菜单自定义样式类名
+    menuHeaderClassNames?: any; // 菜单头部自定义样式类名
     pathname?: string; // 当前路由路径
     matchedRoutes?: any; // 匹配的路由列表（可以是 string[] 或完整的路由对象数组）
     onNavigate?: (path: string) => void; // 路由导航回调函数
@@ -198,11 +200,13 @@ export interface SinKingRef {
 const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref): any => {
     let {
         loading = false,
+        rootClassName,
         breadCrumb = true,
         breadCrumbItems = [],
         hideBreadCrumb = false,
         menus,
         menuClassNames,
+        menuHeaderClassNames,
         pathname,
         matchedRoutes,
         onNavigate,
@@ -320,6 +324,7 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
             : [];
 
         return <Sider classNames={menuClassNames}
+                      headerClassNames={menuHeaderClassNames}
                       layout={layoutMode}
                       theme={theme}
                       collapsed={collapsed}
@@ -424,7 +429,7 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
     </Layout>;
 
     return (
-        <App>
+        <App rootClassName={rootClassName}>
             {(loading && <Loading/>) || (layout !== "horizontal" ? LayoutNormal : LayoutFlow)}
         </App>
     );

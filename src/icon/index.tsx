@@ -2,39 +2,39 @@
 
 /**
  * Icon 组件 - 支持 Ant Design 图标和 iconfont 图标
- * 
+ *
  * 使用方式：
- * 
+ *
  * 1. 全局配置（推荐，应用启动时设置一次）
  *    ```tsx
  *    import { setIconfontUrl } from '@/components/icon';
- *    
+ *
  *    // 设置单个 iconfont 地址
  *    setIconfontUrl('//at.alicdn.com/t/c/font_xxx.js');
- *    
+ *
  *    // 设置多个 iconfont 地址（支持多个图标库）
  *    setIconfontUrl([
  *      '//at.alicdn.com/t/c/font_xxx1.js',
  *      '//at.alicdn.com/t/c/font_xxx2.js'
  *    ]);
  *    ```
- * 
+ *
  * 2. 使用 Provider 局部配置（适用于特定区域需要不同图标库）
  *    ```tsx
  *    import { Icon, IconFontProvider } from '@/components/icon';
- *    
+ *
  *    <IconFontProvider iconfontUrl="//at.alicdn.com/t/c/font_xxx.js">
  *      <Icon type="icon-xxx" />
  *    </IconFontProvider>
  *    ```
- * 
+ *
  * 3. 直接在组件上配置（优先级最高，适用于个别图标需要特殊处理）
  *    ```tsx
  *    import { Icon } from '@/components/icon';
- *    
+ *
  *    <Icon type="icon-xxx" iconfontUrl="//at.alicdn.com/t/c/font_xxx.js" />
  *    ```
- * 
+ *
  * 优先级：组件 props > IconFontProvider > 全局配置 > 默认值
  */
 
@@ -126,10 +126,10 @@ export const Icon = React.forwardRef<HTMLSpanElement, IconProps>(
     ({type, iconfontUrl, className, style, onClick, ...rest}, ref) => {
         const {styles, cx} = useStyles();
         const context = useContext(IconFontContext);
-        
+
         // 优先级：props > context > 全局配置
         const currentIconfontUrl = iconfontUrl || context.iconfontUrl || globalIconfontUrl;
-        
+
         // 使用 useMemo 缓存 iconfont 组件实例，避免重复创建
         const IconfontIcon = useMemo(() => {
             if (!currentIconfontUrl) {
@@ -139,7 +139,7 @@ export const Icon = React.forwardRef<HTMLSpanElement, IconProps>(
                 scriptUrl: currentIconfontUrl,
             });
         }, [currentIconfontUrl]);
-        
+
         // 优先渲染 Antd 图标
         const AntdIconComponent: any = (AntdIcons as any)[type];
         if (AntdIconComponent) {
@@ -148,13 +148,14 @@ export const Icon = React.forwardRef<HTMLSpanElement, IconProps>(
                                    onClick={onClick} {...rest}/>
             );
         }
-        
+
         // 渲染 iconfont 图标
         if (type.startsWith('icon-')) {
             if (!IconfontIcon) {
                 // 渲染占位符
                 return (
-                    <span ref={ref} className={cx(styles.iconWrapper, className)} style={style} onClick={onClick} {...rest}>
+                    <span ref={ref} className={cx(styles.iconWrapper, className)} style={style}
+                          onClick={onClick} {...rest}>
                         {type}
                     </span>
                 );
@@ -164,7 +165,7 @@ export const Icon = React.forwardRef<HTMLSpanElement, IconProps>(
                               onClick={onClick} {...rest}/>
             );
         }
-        
+
         // 兜底渲染文本
         return (
             <span ref={ref} className={cx(styles.iconWrapper, className)} style={style} onClick={onClick} {...rest}>
@@ -182,7 +183,8 @@ export const getAntdIconNames = (): string[] => {
         return !key.startsWith('create') &&
             !key.startsWith('set') &&
             !key.startsWith('get') &&
-            key !== 'default';
+            key !== 'default' &&
+            key !== 'IconProvider';
     });
 };
 
@@ -214,19 +216,19 @@ const normalizeUrl = (url: string): string => {
  */
 export const getIconfontIconNames = async (url?: string | string[]): Promise<string[]> => {
     const targetUrl = url || globalIconfontUrl;
-    
+
     // 如果未配置 iconfont 地址，返回空数组
     if (!targetUrl) {
         return [];
     }
-    
+
     // 如果传入了新的 URL，清除缓存
     if (url && iconfontCache) {
         iconfontCache = null;
     }
-    
+
     if (iconfontCache) return iconfontCache;
-    
+
     try {
         // 支持多个 iconfont 地址
         const urls = Array.isArray(targetUrl) ? targetUrl : [targetUrl];
@@ -241,7 +243,7 @@ export const getIconfontIconNames = async (url?: string | string[]): Promise<str
                 }
             })
         );
-        
+
         // 合并所有图标名称并去重
         const allIcons = [...new Set(iconSets.flat())];
         iconfontCache = allIcons;

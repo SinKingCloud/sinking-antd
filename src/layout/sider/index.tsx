@@ -64,7 +64,6 @@ const useStyles = createStyles(({token, isDarkMode}): any => {
             height: "50px",
             lineHeight: "50px !important",
             borderTop: "0.5px solid " + token?.colorBorder + " !important",
-            borderBottom: "0.5px solid " + token?.colorBorder + " !important",
             fontWeight: "bolder",
             fontSize: 14,
             color: isDarkMode ? "rgb(255,255,255,0.65)" : "rgba(122,122,122)",

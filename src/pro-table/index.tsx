@@ -115,6 +115,8 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
     const fontColor = isDarkMode ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)";
     const backgroundColor = isDarkMode ? "rgba(255, 255, 255, 0.1) !important" : "rgba(0, 0, 0, 0.05) !important";
     const fontSize = 12;
+    const tableBorder = `${token?.lineWidth}px ${token?.lineType} ${token?.colorBorderSecondary}`;
+    const tableRadius = token?.borderRadius + "px !important";
     const pagination = {
         color: fontColor,
         fontSize: fontSize,
@@ -221,7 +223,13 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
         },
         table: {
             ".ant-table": {
-                borderRadius: token?.borderRadius + "px",
+                borderRadius: tableRadius,
+            },
+            ".ant-table:not(.ant-table-bordered) > .ant-table-container": {
+                borderInline: tableBorder,
+            },
+            ".ant-table-container, .ant-table-content": {
+                borderRadius: tableRadius,
             },
             ".ant-table-thead": {
                 ".ant-table-cell": {
@@ -953,7 +961,6 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
                         style={{whiteSpace: "nowrap"}}
                         scroll={{x: true, y: virtual ? 500 : undefined}}
                         virtual={virtual}
-                        bordered={true}
                         {...tableProps}
                         rowSelection={getRowSelection}
                         pagination={!pageHidden && pageInTable ? {

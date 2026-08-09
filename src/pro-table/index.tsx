@@ -220,6 +220,9 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
             }
         },
         table: {
+            ".ant-table": {
+                borderRadius: token?.borderRadius + "px",
+            },
             ".ant-table-thead": {
                 ".ant-table-cell": {
                     padding: "10px !important",
@@ -950,6 +953,7 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
                         style={{whiteSpace: "nowrap"}}
                         scroll={{x: true, y: virtual ? 500 : undefined}}
                         virtual={virtual}
+                        bordered={true}
                         {...tableProps}
                         rowSelection={getRowSelection}
                         pagination={!pageHidden && pageInTable ? {

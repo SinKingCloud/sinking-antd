@@ -207,6 +207,7 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
                 itemColor: token?.colorTextSecondary || "",
                 itemHoverColor: token?.colorTextSecondary || "",
                 fontSize: 13,
+                iconMarginInlineEnd: 10,
                 itemMarginBlock: 0,
                 itemMarginInline: 0,
                 itemBorderRadius: 0,

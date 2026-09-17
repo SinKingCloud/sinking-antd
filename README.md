@@ -51,6 +51,8 @@ function App() {
 | Layout | 后台布局 |
 | ProTable | 高级表格 |
 | ProModal | 高级弹窗 |
+| PageTable | 页面表格，包含标题区、搜索筛选、工具栏、行选择和分页 |
+| ModalTable | 弹窗表格，复用 PageTable 配置并支持 ref 打开和关闭 |
 | Icon | 图标 |
 | Title | 标题 |
 | Breadcrumb | 面包屑 |

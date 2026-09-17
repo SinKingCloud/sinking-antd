@@ -42,6 +42,14 @@ import type {ProColumns, ProTableSearch, ProTableProps, ProTableRef} from "./pro
 import ProModal from "./pro-modal";
 import type {ProModalProps, ProModalRef} from "./pro-modal";
 
+// ============ PageTable 组件及其相关导出 ============
+import PageTable from "./page-table";
+import type {PageTableProps, PageTableRef} from "./page-table";
+
+// ============ ModalTable 组件及其相关导出 ============
+import ModalTable from "./modal-table";
+import type {ModalTableProps, ModalTableRef} from "./modal-table";
+
 // ============ 统一导出所有组件和工具 ============
 export {
     // Icon 相关
@@ -85,6 +93,12 @@ export {
     
     // ProModal 相关
     ProModal,
+
+    // PageTable 相关
+    PageTable,
+
+    // ModalTable 相关
+    ModalTable,
 };
 
 // ============ 导出所有类型 ============
@@ -121,4 +135,12 @@ export type {
     // ProModal 类型
     ProModalProps,
     ProModalRef,
+
+    // PageTable 类型
+    PageTableProps,
+    PageTableRef,
+
+    // ModalTable 类型
+    ModalTableProps,
+    ModalTableRef,
 };

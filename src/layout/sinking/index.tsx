@@ -126,8 +126,13 @@ const useLayoutStyles = createStyles(({isDarkMode, token, css, responsive}): any
             display: "inline-flex",
             justifyContent: "center",
             alignItems: "center",
-            width: "220px",
+            flex: "none",
+            whiteSpace: "nowrap",
             height: "55px",
+        },
+        flowRight: {
+            flex: "none",
+            whiteSpace: "nowrap",
         },
         darkColor: {
             backgroundColor: "#001529 !important"
@@ -250,6 +255,7 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
             menuBtn,
             flow,
             logo,
+            flowRight,
             darkColor,
             flowContent,
             layoutNormal
@@ -411,7 +417,7 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
                         {unCollapsedLogo?.(!systemTheme?.isDarkMode)}
                     </div>
                     {getSider(layout)}
-                    <div>{headerRight}</div>
+                    <div className={flowRight}>{headerRight}</div>
                 </div>
             }
         </Layout.Header>

@@ -16,6 +16,8 @@ interface TableDateFilterProps {
     value: [Dayjs, Dayjs] | null;
     onChange: (value: [Dayjs, Dayjs] | null) => void;
     ariaLabel?: string;
+    /** 是否回填选中项文案，默认 true；false 时固定显示筛选名称。 */
+    showSelectedLabel?: boolean;
     disabled?: boolean;
     tooltip?: React.ReactNode;
     presets?: {value: string; label: React.ReactNode; days: number}[];
@@ -49,6 +51,8 @@ interface TableSelectFilterConfig {
     name: string;
     label: string;
     icon?: string;
+    /** 是否回填选中项文案，默认 true；false 时固定显示 label。 */
+    showSelectedLabel?: boolean;
     hidden?: boolean;
     disabled?: boolean;
     tooltip?: React.ReactNode;
@@ -110,7 +114,8 @@ interface TableRequestResult<RecordType> {
 }
 
 export interface PageTableProps<RecordType extends object = any> extends Omit<DataTableProps<RecordType>, "rowSelection"> {
-    hero?: TableHeroProps | false;
+    /** false / null / 省略时关闭；配置对象使用内置标题区；JSX 元素替换整个标题区。 */
+    hero?: TableHeroProps | React.ReactElement | false | null;
     toolbar?: TableToolbarConfig | false;
     /** true 使用默认搜索框；配置对象可自定义字段、提示和防抖。 */
     search?: TableSearchConfig | boolean;
@@ -497,6 +502,10 @@ interface TableFilterProps {
     options: TableFilterOption[];
     icon: string;
     ariaLabel: string;
+    /** 固定显示的筛选名称，省略时使用 ariaLabel。 */
+    label?: React.ReactNode;
+    /** 是否回填选中项文案，默认 true；false 时固定显示筛选名称。 */
+    showSelectedLabel?: boolean;
     title?: string;
     tooltip?: React.ReactNode;
     disabled?: boolean;
@@ -510,6 +519,8 @@ const TableFilter = React.memo(({
     options,
     icon,
     ariaLabel,
+    label: fixedLabel,
+    showSelectedLabel = true,
     title,
     tooltip,
     disabled,
@@ -520,6 +531,8 @@ const TableFilter = React.memo(({
     const {styles} = useTableStyles();
     const commandKey = "__table_filter_command__";
     const active = options.find((item) => item.value === value) || options[0];
+    const label = showSelectedLabel ? active?.label : fixedLabel ?? ariaLabel;
+    const measureOptions = matchWidth && showSelectedLabel;
     const items = useMemo<MenuProps["items"]>(() => [
         ...options.map((item) => ({key: item.value, label: item.label})),
         ...(command ? [
@@ -545,20 +558,20 @@ const TableFilter = React.memo(({
                 onClick: ({key}) => key === commandKey ? command?.onClick() : onChange(key),
             }}>
             <button
-                className={`${styles.toolbarTrigger} ${matchWidth ? "match-width" : ""}`}
+                className={`${styles.toolbarTrigger} ${measureOptions ? "match-width" : ""}`}
                 type="button"
                 disabled={disabled}
                 aria-label={ariaLabel}>
                 <Icon type={icon} className="marker"/>
-                {matchWidth ? (
+                {measureOptions ? (
                     <span className="value-stack" title={title}>
                         {options.map((item) => (
                             <span className="value measure" aria-hidden="true" key={item.value}>{item.label}</span>
                         ))}
-                        <span className="value active">{active?.label}</span>
+                        <span className="value active">{label}</span>
                     </span>
                 ) : (
-                    <span className="value" title={title}>{active?.label}</span>
+                    <span className="value" title={title}>{label}</span>
                 )}
                 <Icon type="DownOutlined" className="arrow"/>
             </button>
@@ -661,7 +674,7 @@ const datePresets = [
 
 const datePopupAlign = {overflow: {adjustX: true, adjustY: true, shiftX: true}};
 
-const TableDateFilter = ({value, onChange, ariaLabel = "时间筛选", tooltip, disabled, presets = datePresets}: TableDateFilterProps) => {
+const TableDateFilter = ({value, onChange, ariaLabel = "时间筛选", showSelectedLabel = true, tooltip, disabled, presets = datePresets}: TableDateFilterProps) => {
     const {styles} = useTableStyles();
     const [open, setOpen] = useState(false);
     const today = dayjs();
@@ -680,6 +693,8 @@ const TableDateFilter = ({value, onChange, ariaLabel = "时间筛选", tooltip, 
                 disabled={disabled}
                 icon="CalendarOutlined"
                 ariaLabel={`${ariaLabel}：${title}`}
+                label={ariaLabel}
+                showSelectedLabel={showSelectedLabel}
                 tooltip={tooltip}
                 onChange={(next) => {
                     if (next === "custom") {
@@ -1137,6 +1152,7 @@ function useTableFilters(filters?: TableFilterConfig[]) {
             items.push({
                 type: "filter", key: `filter:${filter.name}`, hidden: filter.hidden,
                 value, icon: filter.icon || "FilterOutlined", ariaLabel: filter.label, disabled: filter.disabled,
+                label: filter.label, showSelectedLabel: filter.showSelectedLabel,
                 tooltip: filter.tooltip,
                 options: filter.allLabel !== false && !options.some((option) => option.value === "")
                     ? [{value: "", label: filter.allLabel ?? "全部"}, ...options] : options,
@@ -1156,6 +1172,7 @@ function useTableFilters(filters?: TableFilterConfig[]) {
             items.push({
                 type: "date", key: `filter:${filter.name}`, hidden: filter.hidden,
                 value, ariaLabel: filter.label, disabled: filter.disabled, presets: filter.presets,
+                showSelectedLabel: filter.showSelectedLabel,
                 tooltip: filter.tooltip,
                 onChange: (value) => {
                     if (filter.value === undefined) setValues((current) => ({...current, [filter.name]: {type: "date", value}}));
@@ -1369,7 +1386,7 @@ const PageTable = <RecordType extends object = any>(props: PageTableProps<Record
     return (
         <div ref={rootRef} className={`${styles.page} ui-table-root ${rootClassName}`} style={rootStyle}>
             <section className={`${styles.workspace} ui-table-workspace`} aria-label={ariaLabel}>
-                {hero && <TableHero {...hero}/>}
+                {React.isValidElement(hero) ? hero : hero && <TableHero {...hero}/>}
                 {showToolbar && <TableToolbar
                     left={toolbar ? toolbar.left : undefined}
                     search={searchConfig ? {

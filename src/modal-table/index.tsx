@@ -1,4 +1,4 @@
-import React, {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
+import React, {forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState} from "react";
 import {App, Modal, Spin} from "antd";
 import type {ModalProps} from "antd";
 import {createStyles} from "antd-style";
@@ -101,6 +101,7 @@ const ModalTableContent = <RecordType extends object = any>({tableRef, ...props}
     const [loadState, setLoadState] = useState<"pending" | "settled" | "ready">("pending");
     const loading = typeof props.loading === "boolean" ? props.loading : Boolean(props.loading?.spinning);
     const waiting = reload && loadState !== "ready";
+    const dataSource = useMemo(() => waiting ? [] : props.dataSource, [waiting, waiting ? undefined : props.dataSource]);
 
     useEffect(() => {
         if (loadState === "settled" && !loading) setLoadState("ready");
@@ -129,7 +130,7 @@ const ModalTableContent = <RecordType extends object = any>({tableRef, ...props}
             {...props}
             paginationAffix={false}
             ref={tableRef}
-            dataSource={waiting ? [] : props.dataSource}
+            dataSource={dataSource}
             loading={waiting ? true : props.loading}
             empty={waiting ? true : props.empty}
             pagination={waiting && props.pagination !== false ? {...props.pagination, total: 0} : props.pagination}

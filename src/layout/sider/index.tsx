@@ -127,7 +127,7 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
     const {
         collapsed,
         pathname,
-        matchedRoutes = [],
+        matchedRoutes,
         onNavigate,
         onMenuClick,
         menus,
@@ -145,13 +145,14 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
     const {mobile} = useResponsive();
     const token = useTheme();
     const {styles: {left, content, menu, menuTop, menuBottom, menu2, darkColor, darkBorderTop}, cx} = useStyles();
-    const [selectedKeys, setSelectedKeys] = useState<any>([]);
-    const [stateOpenKeys, setStateOpenKeys] = useState<any>([]);
+    const [selectedKeys, setSelectedKeys] = useState<any[]>([]);
+    const [stateOpenKeys, setStateOpenKeys] = useState<any[]>([]);
 
     useEffect(() => {
         if (pathname) {
-            setSelectedKeys([pathname]);
-            setStateOpenKeys(matchedRoutes);
+            const next = matchedRoutes ?? [];
+            setSelectedKeys((current) => current.length === 1 && current[0] === pathname ? current : [pathname]);
+            setStateOpenKeys((current) => current.length === next.length && current.every((key, index) => key === next[index]) ? current : next);
         }
     }, [pathname, matchedRoutes]);
 
@@ -175,16 +176,16 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
     }, [menus]);
 
     const onOpenChange = useCallback((openKeys: any[]) => {
-        const currentOpenKey = openKeys.find((key) => stateOpenKeys.indexOf(key) === -1);
-        if (currentOpenKey !== undefined) {
-            const repeatIndex = openKeys.filter((key) => key !== currentOpenKey).findIndex((key) => levelKeys[key] === levelKeys[currentOpenKey]);
-            setStateOpenKeys(
-                openKeys.filter((_, index) => index !== repeatIndex).filter((key) => levelKeys[key] <= levelKeys[currentOpenKey]),
-            );
-        } else {
-            setStateOpenKeys(openKeys);
-        }
-    }, [stateOpenKeys, levelKeys]);
+        setStateOpenKeys((current) => {
+            const currentOpenKey = openKeys.find((key) => current.indexOf(key) === -1);
+            let next = openKeys;
+            if (currentOpenKey !== undefined) {
+                const repeatIndex = openKeys.filter((key) => key !== currentOpenKey).findIndex((key) => levelKeys[key] === levelKeys[currentOpenKey]);
+                next = openKeys.filter((_, index) => index !== repeatIndex).filter((key) => levelKeys[key] <= levelKeys[currentOpenKey]);
+            }
+            return current.length === next.length && current.every((key, index) => key === next[index]) ? current : next;
+        });
+    }, [levelKeys]);
 
     /**
      * 获取菜单主题
@@ -224,7 +225,7 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
         if (onNavigate) {
             onNavigate(item?.key);
         }
-        setSelectedKeys([item?.key]);
+        setSelectedKeys((current) => current.length === 1 && current[0] === item?.key ? current : [item?.key]);
         onMenuClick?.(item);
     }, [onNavigate, onMenuClick]);
 

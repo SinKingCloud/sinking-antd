@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useState, ReactNode} from 'react';
+import React, {createContext, useCallback, useContext, useMemo, useState, ReactNode} from 'react';
 import {ThemeProvider, ThemeMode} from 'antd-style';
 import {theme} from 'antd';
 import Antd from "../antd";
@@ -121,8 +121,8 @@ const ThemeProviderInner: React.FC<ThemeProps> = ({
                                                       appearance: customAppearance,
                                                       onAppearanceChange
                                                   }) => {
-    const [themes, setThemes] = useState<any>(customTheme || getDefaultTheme("#1890ff", 6));
-    const [mode, setMode2] = useState<ThemeMode>(customMode || getMode());
+    const [themes, setThemes] = useState<any>(() => customTheme || getDefaultTheme("#1890ff", 6));
+    const [mode, setMode2] = useState<ThemeMode>(() => customMode || getMode());
     const [appearance, setAppearance] = useState<any>(customAppearance !== undefined ? customAppearance : null);
 
     const lightMode: ThemeMode = "light";
@@ -132,40 +132,41 @@ const ThemeProviderInner: React.FC<ThemeProps> = ({
     /**
      * 设置默认主题
      */
-    const setDefaultTheme = () => {
-        setThemes(getDefaultTheme(themes?.token?.colorPrimary, themes?.token?.borderRadius))
-    }
+    const setDefaultTheme = useCallback(() => {
+        setThemes((current: any) => getDefaultTheme(current?.token?.colorPrimary, current?.token?.borderRadius));
+    }, []);
 
     /**
      * 设置紧凑主题
      */
-    const setCompactTheme = () => {
-        setThemes(getCompactTheme(themes?.token?.colorPrimary, themes?.token?.borderRadius))
-    }
+    const setCompactTheme = useCallback(() => {
+        setThemes((current: any) => getCompactTheme(current?.token?.colorPrimary, current?.token?.borderRadius));
+    }, []);
 
     /**
      * 设置主题颜色
      */
-    const setColor = (color: string) => {
-        let temp = {...themes}
-        temp.token.colorPrimary = color;
-        temp.token.colorInfo = color;
-        setThemes(temp);
-    }
+    const setColor = useCallback((color: string) => {
+        setThemes((current: any) => ({
+            ...current,
+            token: {...current.token, colorPrimary: color, colorInfo: color},
+        }));
+    }, []);
 
     /**
      * 设置主题圆角
      */
-    const setRadius = (radius: number) => {
-        let temp = {...themes}
-        temp.token.borderRadius = radius;
-        setThemes(temp);
-    }
+    const setRadius = useCallback((radius: number) => {
+        setThemes((current: any) => ({
+            ...current,
+            token: {...current.token, borderRadius: radius},
+        }));
+    }, []);
 
     /**
      * 获取模式名称
      */
-    const getModeName = (modeValue: string) => {
+    const getModeName = useCallback((modeValue: string) => {
         if (modeValue == lightMode) {
             return "亮色风格";
         }
@@ -173,81 +174,81 @@ const ThemeProviderInner: React.FC<ThemeProps> = ({
             return "暗色风格";
         }
         return "跟随系统";
-    }
+    }, []);
 
     /**
      * 设置亮色模式
      */
-    const setLightMode = () => {
+    const setLightMode = useCallback(() => {
         setModeToStorage(lightMode);
         setMode2(lightMode)
         setAppearance(lightMode);
-    }
+    }, []);
 
     /**
      * 设置暗色模式
      */
-    const setDarkMode = () => {
+    const setDarkMode = useCallback(() => {
         setModeToStorage(darkMode);
         setMode2(darkMode);
         setAppearance(darkMode);
-    }
+    }, []);
 
     /**
      * 设置跟随系统模式
      */
-    const setAutoMode = () => {
+    const setAutoMode = useCallback(() => {
         setModeToStorage(autoMode);
         setMode2(autoMode);
         setAppearance(null);
-    }
+    }, []);
 
     /**
      * 是否为亮色模式
      */
-    const isLightMode = () => {
+    const isLightMode = useCallback(() => {
         return mode == lightMode;
-    }
+    }, [mode]);
 
     /**
      * 是否为暗色模式
      */
-    const isDarkMode = () => {
+    const isDarkMode = useCallback(() => {
         return mode == darkMode;
-    }
+    }, [mode]);
 
     /**
      * 是否为跟随系统模式
      */
-    const isAutoMode = () => {
+    const isAutoMode = useCallback(() => {
         return mode == autoMode;
-    }
+    }, [mode]);
 
     /**
      * 当前是否为亮色风格
      */
-    const isLightTheme = () => {
+    const isLightTheme = useCallback(() => {
         return appearance == lightMode;
-    }
+    }, [appearance]);
 
     /**
      * 当前是否为暗色风格
      */
-    const isDarkTheme = () => {
+    const isDarkTheme = useCallback(() => {
         return appearance == darkMode;
-    }
+    }, [appearance]);
 
     /**
      * 当前是否为紧凑主题
      */
-    const isCompactTheme = () => {
+    const isCompactTheme = useCallback(() => {
         return themes?.algorithm && Array.isArray(themes.algorithm) && themes.algorithm.includes(theme.compactAlgorithm);
-    }
+    }, [themes]);
 
     /**
      * 模式切换
      */
-    const toggle = () => {
+    const toggle = useCallback(() => {
         if (isAutoMode()) {
             setLightMode();
         } else if (isLightMode()) {
@@ -255,9 +256,9 @@ const ThemeProviderInner: React.FC<ThemeProps> = ({
         } else {
             setAutoMode();
         }
-    }
+    }, [isAutoMode, isLightMode, setLightMode, setDarkMode, setAutoMode]);
 
-    const value: ThemeContextType = {
+    const value = useMemo<ThemeContextType>(() => ({
         themes,
         setColor,
         setRadius,
@@ -281,7 +282,14 @@ const ThemeProviderInner: React.FC<ThemeProps> = ({
         isDarkTheme,
         isCompactTheme,
         toggle
-    };
+    }), [themes, setColor, setRadius, setDefaultTheme, setCompactTheme, appearance, mode, getModeName,
+        setLightMode, setDarkMode, setAutoMode, isLightMode, isDarkMode, isAutoMode, isLightTheme,
+        isDarkTheme, isCompactTheme, toggle]);
+
+    const handleAppearanceChange = useCallback((newAppearance: any) => {
+        onAppearanceChange?.(newAppearance);
+        setAppearance(newAppearance);
+    }, [onAppearanceChange]);
 
     return (
         <ThemeContext.Provider value={value}>
@@ -289,10 +297,7 @@ const ThemeProviderInner: React.FC<ThemeProps> = ({
                 theme={themes}
                 themeMode={mode}
                 appearance={appearance}
-                onAppearanceChange={(newAppearance) => {
-                    onAppearanceChange?.(newAppearance);
-                    setAppearance(newAppearance);
-                }}>
+                onAppearanceChange={handleAppearanceChange}>
                 <Antd/>
                 {children}
             </ThemeProvider>

@@ -88,8 +88,9 @@ export interface IconFontProviderProps {
  * 用于为子组件提供自定义的 iconfont 地址
  */
 export const IconFontProvider: React.FC<IconFontProviderProps> = ({iconfontUrl, children}) => {
+    const value = useMemo(() => ({iconfontUrl}), [iconfontUrl]);
     return (
-        <IconFontContext.Provider value={{iconfontUrl}}>
+        <IconFontContext.Provider value={value}>
             {children}
         </IconFontContext.Provider>
     );
@@ -118,6 +119,9 @@ interface IconProps extends React.HTMLAttributes<HTMLSpanElement> {
     onClick?: any; // 点击事件
 }
 
+// 同一组脚本地址共享组件，避免每个图标都创建新的 forwardRef 组件。
+const iconfontComponents = new Map<string, ReturnType<typeof createFromIconfontCN>>();
+
 /**
  * Icon 组件
  * 支持 Ant Design 图标和 iconfont 图标
@@ -135,9 +139,17 @@ export const Icon = React.forwardRef<HTMLSpanElement, IconProps>(
             if (!currentIconfontUrl) {
                 return null;
             }
-            return createFromIconfontCN({
-                scriptUrl: currentIconfontUrl,
+            const cacheKey = JSON.stringify(Array.isArray(currentIconfontUrl) ? currentIconfontUrl : [currentIconfontUrl]);
+            // 服务端创建的组件不会加载脚本，不能复用到之后的浏览器环境。
+            const canLoadScripts = typeof document !== 'undefined' && typeof window !== 'undefined' && typeof document.createElement === 'function';
+            const cached = canLoadScripts ? iconfontComponents.get(cacheKey) : undefined;
+            if (cached) return cached;
+            const component = createFromIconfontCN({
+                // Ant Design 会反转脚本数组，传入副本以保留配置顺序。
+                scriptUrl: Array.isArray(currentIconfontUrl) ? [...currentIconfontUrl] : currentIconfontUrl,
             });
+            if (canLoadScripts) iconfontComponents.set(cacheKey, component);
+            return component;
         }, [currentIconfontUrl]);
 
         // 优先渲染 Antd 图标
@@ -175,17 +187,23 @@ export const Icon = React.forwardRef<HTMLSpanElement, IconProps>(
     }
 );
 
+let antdIconNames: string[] | undefined;
+
 /**
  * 获取所有 Antd 图标名称
  */
 export const getAntdIconNames = (): string[] => {
-    return Object.keys(AntdIcons).filter(key => {
-        return !key.startsWith('create') &&
-            !key.startsWith('set') &&
-            !key.startsWith('get') &&
-            key !== 'default' &&
-            key !== 'IconProvider';
-    });
+    if (!antdIconNames) {
+        antdIconNames = Object.keys(AntdIcons).filter(key => {
+            return !key.startsWith('create') &&
+                !key.startsWith('set') &&
+                !key.startsWith('get') &&
+                key !== 'default' &&
+                key !== 'IconProvider';
+        });
+    }
+    // 保持每次调用返回独立数组，避免调用方排序或修改影响内部缓存。
+    return [...antdIconNames];
 };
 
 /**

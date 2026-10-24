@@ -264,76 +264,74 @@ const useStyles: any = createStyles(({token, isDarkMode}: any): any => {
 });
 
 const useContainerResponsive = (containerRef: React.RefObject<HTMLDivElement | null>) => {
-    const [responsive, setResponsive] = useState({
-        xs: false,
-        sm: false,
-        md: false,
-        lg: false,
-        xl: false,
-        xxl: false,
-        mobile: false
-    });
-
-    // 防抖函数，避免频繁更新
-    const debounce = useCallback((func: Function, wait: number) => {
-        let timeout: ReturnType<typeof setTimeout>;
-        return (...args: any[]) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(null, args), wait);
-        };
-    }, []);
-
-    const updateResponsive = useCallback((width: number) => {
-        const newResponsive = {
-            xs: width < 576,
-            sm: width >= 576 && width < 768,
-            md: width >= 768 && width < 992,
-            lg: width >= 992 && width < 1200,
-            xl: width >= 1200 && width < 1600,
-            xxl: width >= 1600,
-            mobile: width < 992
-        };
-
-        // 只有当响应式状态真正发生变化时才更新
-        setResponsive(prev => {
-            const hasChanged = Object.keys(newResponsive).some(
-                key => prev[key as keyof typeof prev] !== newResponsive[key as keyof typeof newResponsive]
-            );
-            return hasChanged ? newResponsive : prev;
-        });
-    }, []);
-
-    // 防抖的更新函数
-    const debouncedUpdate = useMemo(
-        () => debounce((width: number) => updateResponsive(width), 10),
-        [debounce, updateResponsive]
-    );
-
+    const [breakpoint, setBreakpoint] = useState<number | null>(null);
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
+        const getBreakpoint = (width: number) => width < 576 ? 0 : width < 768 ? 1 : width < 992 ? 2 : width < 1200 ? 3 : width < 1600 ? 4 : 5;
+        let currentBreakpoint = getBreakpoint(container.clientWidth);
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        setBreakpoint(currentBreakpoint);
+
         const handleResize = () => {
-            const width = container.clientWidth;
-            debouncedUpdate(width);
+            const nextBreakpoint = getBreakpoint(container.clientWidth);
+            clearTimeout(timeout);
+            // 同一断点内的尺寸变化无需进入 React 更新队列。
+            if (nextBreakpoint === currentBreakpoint) return;
+            timeout = setTimeout(() => {
+                currentBreakpoint = nextBreakpoint;
+                setBreakpoint(nextBreakpoint);
+            }, 10);
         };
-
-        // 初始化时立即更新
-        updateResponsive(container.clientWidth);
-
         const resizeObserver = new ResizeObserver(handleResize);
         resizeObserver.observe(container);
 
         return () => {
-            resizeObserver.unobserve(container);
+            clearTimeout(timeout);
+            resizeObserver.disconnect();
         };
-    }, [containerRef, debouncedUpdate, updateResponsive]);
+    }, [containerRef]);
 
-    return responsive;
+    return useMemo(() => ({
+        xs: breakpoint === 0,
+        sm: breakpoint === 1,
+        md: breakpoint === 2,
+        lg: breakpoint === 3,
+        xl: breakpoint === 4,
+        xxl: breakpoint === 5,
+        mobile: breakpoint !== null && breakpoint < 3
+    }), [breakpoint]);
+};
+
+// 搜索折叠与固钉状态仅更新各自区域，避免让表格重新渲染。
+const SearchForm = React.memo(({renderItems, ...formProps}: React.ComponentProps<typeof Form> & {
+    renderItems: (collapsed: boolean, setCollapsed: React.Dispatch<React.SetStateAction<boolean>>) => React.ReactNode;
+}) => {
+    const [collapsed, setCollapsed] = useState(true);
+    return <Form {...formProps}>{renderItems(collapsed, setCollapsed)}</Form>;
+});
+
+const AffixCard = ({affix, filterClassName, offsetTop, offsetBottom, className, ...cardProps}: React.ComponentProps<typeof Card> & {
+    affix: boolean;
+    filterClassName: string;
+    offsetTop?: number;
+    offsetBottom?: number;
+}) => {
+    const [affixed, setAffixed] = useState(false);
+    const onAffixChange = useCallback((value?: boolean) => setAffixed(value || false), []);
+    const content = <Card {...cardProps} className={className + (affixed ? " " + filterClassName : "")}/>;
+    return affix ? <Affix offsetTop={offsetTop} offsetBottom={offsetBottom} onChange={onAffixChange}>{content}</Affix> : content;
 };
 
 const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): any => {
     const {styles} = useStyles();
+    const defaults = useMemo(() => ({
+        columns: [] as ProColumns[],
+        tableProps: {} as TableProps<any>,
+        paginationProps: {} as PaginationProps,
+        search: {} as ProTableSearch,
+    }), []);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const device = useContainerResponsive(containerRef);
@@ -343,14 +341,14 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
         extra = undefined, // 表格额外内容
         extraRefreshBtn, // 是否显示刷新按钮
         rowKey = "id", // 行的唯一标识
-        columns = [] as ProColumns[], // 列配置
-        tableProps = {}, // 表格属性
+        columns = defaults.columns, // 列配置
+        tableProps = defaults.tableProps, // 表格属性
         pageHidden = false, // 是否隐藏分页
         pageInTable = false, // 是否在表格中显示分页
-        paginationProps = {}, // 分页属性
+        paginationProps = defaults.paginationProps, // 分页属性
         defaultPage = 1,//默认分页
         defaultPageSize = 10,//默认分页容量
-        search = {} as any, // 搜索表单配置
+        search = defaults.search as any, // 搜索表单配置
         request = undefined, // 请求函数
         rowSelection = false as any, // 多选配置
         selectionAffix = false, // 是否固定多选操作栏
@@ -359,7 +357,6 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
     } = props;
 
     const [form] = Form.useForm();
-    const [collapsed, setCollapsed] = useState(true);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [params, setParams] = useState({});
@@ -454,7 +451,7 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
         }
     }, [params, page, form]);
 
-    const getSearchFormItem = useMemo(() => {
+    const getSearchFormItem = useCallback((collapsed: boolean, setCollapsed: React.Dispatch<React.SetStateAction<boolean>>) => {
         let elements: any[] = [];
         let sum = 0;
         let sumAll = 0;
@@ -623,7 +620,7 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
         return <Row gutter={[20, 20]}>
             {elements}
         </Row>;
-    }, [columns, collapsed, device, loading, search, styles, form]);
+    }, [columns, device, loading, search, styles, props]);
 
     // 使用 useCallback 缓存 renderTableCell 函数
     const renderTableCell = useCallback((text: any, record: any, column: ProColumns) => {
@@ -765,10 +762,10 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
     }, [rowSelection]);
 
     const invertSelectedRow = useCallback(() => {
-        const allKeys = data.map(item => item[rowKey]);
-        const newSelectedKeys = allKeys.filter(key => !selectedRowKeys.includes(key));
+        const selectedKeys = new Set(selectedRowKeys);
+        const newSelectedRows = data.filter(item => !selectedKeys.has(item[rowKey]));
+        const newSelectedKeys = newSelectedRows.map(item => item[rowKey]);
         setSelectedRowKeys(newSelectedKeys);
-        const newSelectedRows = data.filter(item => newSelectedKeys.includes(item[rowKey]));
         setSelectedRows(newSelectedRows);
         if (rowSelection && typeof rowSelection === 'object' && rowSelection.onChange) {
             rowSelection.onChange(newSelectedKeys, newSelectedRows);
@@ -849,7 +846,8 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
 
     const setSelectedRowKey = useCallback((keys: React.Key[]) => {
         setSelectedRowKeys(keys);
-        const rows = data.filter(item => keys.includes(item[rowKey]));
+        const selectedKeys = new Set(keys);
+        const rows = data.filter(item => selectedKeys.has(item[rowKey]));
         setSelectedRows(rows);
         if (rowSelection && typeof rowSelection === 'object' && rowSelection.onChange) {
             rowSelection.onChange(keys, rows);
@@ -875,12 +873,14 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
         allSelectedRow: allSelectedRow
     }));
 
-    const [selectionBarAffix, setSelectionBarAffix] = useState(false);
     const renderSelectionBar = useCallback(() => {
         if ((selectedRowKeys?.length || 0) <= 0) return null;
         const content = (
-            <Card
-                className={styles.toolCard + (selectionBarAffix ? " " + styles.filter : "")}
+            <AffixCard
+                affix={selectionAffix}
+                offsetTop={5}
+                filterClassName={styles.filter}
+                className={styles.toolCard}
                 variant={"borderless"}>
                 <Row justify="space-between" align="middle">
                     <Col>
@@ -893,29 +893,46 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
                         </Space>
                     </Col>
                 </Row>
-            </Card>
+            </AffixCard>
         );
         if (rowSelection?.hideExtra === true) {
             return false;
         }
         return <Col span={(selectedRowKeys?.length || 0) <= 0 ? 0 : 24}>
-            {selectionAffix ? (
-                <Affix offsetTop={5} onChange={(affixed) => setSelectionBarAffix(affixed || false)}>{content}</Affix>
-            ) : content}
+            {content}
         </Col>;
-    }, [selectedRowKeys, selectedRows, rowSelection, selectionAffix, selectionBarAffix, styles, clearSelectedRow]);
+    }, [selectedRowKeys, selectedRows, rowSelection, selectionAffix, styles, clearSelectedRow]);
 
-    const [pageAffix, setPageAffix] = useState(false);
+    const onPageChange = useCallback((page: number, pageSize: number) => {
+        setPage(page);
+        setPageSize(pageSize);
+    }, []);
+    const smallPagination = device.xs || device.sm;
+    const showPaginationTotal = useCallback((total: number, range: [number, number]) => smallPagination ? false : `第 ${range[0]}-${range[1]} 条 / 共 ${total} 条`, [smallPagination]);
+    const onTableChange = useCallback((_: any, filters: any, sorter: any) => {
+        if (Object.keys(filters).length > 0) {
+            setParams(prev => ({...prev, ...filters}));
+        }
+        if (Object.keys(sorter).length > 0 && sorter?.field) {
+            let temp: any = {};
+            temp[sorter?.field] = sorter?.order;
+            setSort(temp);
+        }
+    }, []);
+
     const renderPagination = useCallback(() => {
         if (pageHidden || pageInTable || total <= 0) return null;
-        const content = (
-            <Card
-                className={styles.pageCard + (pageAffix ? " " + styles.filter : "")}
+        return (
+            <AffixCard
+                affix={paginationAffix}
+                offsetBottom={5}
+                filterClassName={styles.filter}
+                className={styles.pageCard}
                 variant={"borderless"}>
                 <Pagination
                     align="center"
-                    showTotal={(total: any, range: any) => device?.xs || device?.sm ? false : `第 ${range[0]}-${range[1]} 条 / 共 ${total} 条`}
-                    showQuickJumper={!(device?.xs || device?.sm)}
+                    showTotal={showPaginationTotal}
+                    showQuickJumper={!smallPagination}
                     pageSizeOptions={[10, 20, 50, 100]}
                     {...paginationProps}
                     showSizeChanger={{
@@ -928,27 +945,18 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
                     current={page}
                     pageSize={pageSize}
                     total={total}
-                    onChange={(page: any, pageSize: any) => {
-                        setPage(page);
-                        setPageSize(pageSize);
-                    }}
+                    onChange={onPageChange}
                 />
-            </Card>
+            </AffixCard>
         );
-
-        return paginationAffix ? (
-            <Affix offsetBottom={5} onChange={(affixed) => setPageAffix(affixed || false)}>{content}</Affix>
-        ) : content;
-    }, [pageHidden, pageInTable, total, page, pageSize, paginationProps, device, pageAffix, paginationAffix, styles]);
+    }, [pageHidden, pageInTable, total, page, pageSize, paginationProps, smallPagination, showPaginationTotal, paginationAffix, styles, onPageChange]);
 
     return (
         <Row gutter={[15, 15]} ref={containerRef}>
             <Col span={!search ? 0 : 24}>
                 <Card variant={"borderless"}>
-                    <Form layout={search?.layout || "vertical"} form={form} onReset={onReset}
-                          onFinish={onFinish}>
-                        {getSearchFormItem}
-                    </Form>
+                    <SearchForm layout={search?.layout || "vertical"} form={form} onReset={onReset}
+                                onFinish={onFinish} renderItems={getSearchFormItem}/>
                 </Card>
             </Col>
 
@@ -976,29 +984,17 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
                                     variant: "filled",
                                     size: "small",
                                 },
-                                showQuickJumper: !(device?.xs || device?.sm),
+                                showQuickJumper: !smallPagination,
                                 showLessItems: true,
-                                showTotal: (total: any, range: any) => device?.xs || device?.sm ? false : `第 ${range[0]}-${range[1]} 条 / 共 ${total} 条`,
-                                onChange: (page: any, pageSize: any) => {
-                                    setPage(page);
-                                    setPageSize(pageSize);
-                                }
+                                showTotal: showPaginationTotal,
+                                onChange: onPageChange
                             } as any
                         } : false}
                         size={"small"}
                         columns={getTableColumns as any}
                         dataSource={data}
                         loading={loading}
-                        onChange={useCallback((_: any, filters: any, sorter: any) => {
-                            if (Object.keys(filters).length > 0) {
-                                setParams(prev => ({...prev, ...filters}));
-                            }
-                            if (Object.keys(sorter).length > 0 && sorter?.field) {
-                                let temp: any = {};
-                                temp[sorter?.field] = sorter?.order;
-                                setSort(temp);
-                            }
-                        }, [])}/>
+                        onChange={onTableChange}/>
                 </Card>
             </Col>
             {!pageHidden && !pageInTable && total > 0 && <Col span={24}>

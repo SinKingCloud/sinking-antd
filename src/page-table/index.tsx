@@ -271,10 +271,10 @@ const HeroGraphic = React.memo(({variant = "task"}: any): React.ReactNode => {
 // ============ 内部展示组件 ============
 const useTableStyles = () => {
     const theme = useTheme();
-    return useStyles({
-        compact: Boolean(theme?.isCompactTheme?.()),
-        dark: Boolean(theme?.isDarkMode?.() || theme?.isDarkTheme?.()),
-    });
+    const compact = Boolean(theme?.isCompactTheme?.());
+    const dark = Boolean(theme?.isDarkMode?.() || theme?.isDarkTheme?.());
+    const params = useMemo(() => ({compact, dark}), [compact, dark]);
+    return useStyles(params);
 };
 
 interface PageTablePaginationProps {
@@ -629,6 +629,7 @@ type DataTableProps<RecordType extends object = any> = Omit<AntTableProps<Record
 };
 
 const DataTable = <RecordType extends object = any>({
+    renderOwner,
     className = "",
     scroll,
     showSorterTooltip = false,
@@ -637,7 +638,7 @@ const DataTable = <RecordType extends object = any>({
     onChange,
     onSortChange,
     ...props
-}: DataTableProps<RecordType>) => {
+}: DataTableProps<RecordType> & {renderOwner: object}) => {
     const {styles} = useTableStyles();
     const change = useCallback<NonNullable<AntTableProps<RecordType>["onChange"]>>((pagination, filters, sorter, extra) => {
         onChange?.(pagination, filters, sorter, extra);
@@ -661,6 +662,9 @@ const DataTable = <RecordType extends object = any>({
             onChange={change}/>
     );
 };
+
+// 内部搜索、固钉状态不刷新整表；调用方重新渲染时仍更新自定义单元格。
+const MemoDataTable = React.memo(DataTable) as typeof DataTable;
 
 // ============ 工具栏与批量操作 ============
 const datePresets = [
@@ -993,17 +997,21 @@ function useTableData<RecordType extends object>(props: PageTableProps<RecordTyp
 }
 
 // ============ 行选择 ============
+const defaultSelection = {};
+
 function useTableSelection<RecordType extends object>(
     data: readonly RecordType[],
     rowKey: NonNullable<DataTableProps<RecordType>["rowKey"]>,
     config: PageTableProps<RecordType>["rowSelection"],
+    renderOwner: object,
 ) {
-    const selection = config ? (config === true ? {} : config) : undefined;
+    const selection: TableRowSelection<RecordType> | undefined = config ? (config === true ? defaultSelection : config) : undefined;
     const enabled = Boolean(selection);
     const controlled = selection?.selectedRowKeys !== undefined;
     const preserve = Boolean(selection?.preserveSelectedRowKeys);
     const [internalKeys, setInternalKeys] = useState<Key[]>(() => selection?.defaultSelectedRowKeys || []);
     const selectedRecords = useRef<Map<Key, RecordType> | undefined>(undefined);
+    const selectionRevision = useRef(0);
     const records = useMemo(() => {
         if (!enabled) return undefined;
         const indexed = new Map<Key, RecordType>();
@@ -1011,7 +1019,7 @@ function useTableSelection<RecordType extends object>(
             typeof rowKey === "function" ? rowKey(row, index) : (row as Record<PropertyKey, Key>)[rowKey], row,
         ));
         return indexed;
-    }, [data, rowKey, enabled]);
+    }, [data, rowKey, enabled, renderOwner]);
     const requestedKeys = selection?.selectedRowKeys ?? internalKeys;
     const keys = useMemo(() => {
         if (!enabled) return [];
@@ -1028,21 +1036,24 @@ function useTableSelection<RecordType extends object>(
         });
     }, [records, controlled, preserve]);
 
-    const rows: RecordType[] = [];
-    const retained = preserve && keys.length ? new Map<Key, RecordType>() : undefined;
-    keys.forEach((key) => {
-        const row = records?.get(key) ?? (preserve ? selectedRecords.current?.get(key) : undefined);
-        if (row !== undefined) {
-            rows.push(row);
-            retained?.set(key, row);
-        }
-    });
-    selectedRecords.current = retained;
+    const rows = useMemo(() => {
+        const rows: RecordType[] = [];
+        const retained = preserve && keys.length ? new Map<Key, RecordType>() : undefined;
+        keys.forEach((key) => {
+            const row = records?.get(key) ?? (preserve ? selectedRecords.current?.get(key) : undefined);
+            if (row !== undefined) {
+                rows.push(row);
+                retained?.set(key, row);
+            }
+        });
+        selectedRecords.current = retained;
+        return rows;
+    }, [records, keys, preserve, selectionRevision.current]);
     const snapshot = useRef({keys, rows});
     snapshot.current = {keys, rows};
 
     type SelectionChange = NonNullable<NonNullable<AntTableProps<RecordType>["rowSelection"]>["onChange"]>;
-    const change = (nextKeys: Key[], info: Parameters<SelectionChange>[2], suppliedRows?: RecordType[]) => {
+    const change = useCallback((nextKeys: Key[], info: Parameters<SelectionChange>[2], suppliedRows?: RecordType[]) => {
         if (!selection) return;
         const nextRows: RecordType[] = [];
         const nextRecords = preserve ? new Map<Key, RecordType>() : undefined;
@@ -1066,26 +1077,27 @@ function useTableSelection<RecordType extends object>(
             }
         });
         const next = [...nextKeys];
+        selectionRevision.current += 1;
         selectedRecords.current = nextRecords;
         snapshot.current = {keys: next, rows: nextRows};
         if (!controlled) setInternalKeys(next);
         selection.onChange?.(next, nextRows, info);
-    };
-    const setKeys = (next: Key[]) => change(next, {type: "multiple"});
-    const clear = () => {
+    }, [selection, preserve, controlled, records, rowKey, renderOwner]);
+    const setKeys = useCallback((next: Key[]) => change(next, {type: "multiple"}), [change]);
+    const clear = useCallback(() => {
         if (!selection || selection.clearDisabled) return;
         selection.onClear?.();
         change([], {type: "none"});
-    };
-    const selectAll = () => {
+    }, [selection, change, renderOwner]);
+    const selectAll = useCallback(() => {
         if (!selection) return;
         const next = new Set(snapshot.current.keys);
         records?.forEach((row, key) => {
             if (!selection.getCheckboxProps?.(row).disabled) next.add(key);
         });
         change([...next], {type: "all"});
-    };
-    const invert = () => {
+    }, [selection, records, change, renderOwner]);
+    const invert = useCallback(() => {
         if (!selection) return;
         const next = new Set(snapshot.current.keys);
         records?.forEach((row, key) => {
@@ -1094,25 +1106,29 @@ function useTableSelection<RecordType extends object>(
             else next.add(key);
         });
         change([...next], {type: "invert"});
-    };
+    }, [selection, records, change, renderOwner]);
 
-    let rowSelection: AntTableProps<RecordType>["rowSelection"];
-    if (selection) {
+    const rowSelection = useMemo<AntTableProps<RecordType>["rowSelection"]>(() => {
+        if (!selection) return undefined;
         const {actions, onClear, clearDisabled, ...rest} = selection;
-        rowSelection = {...rest, selectedRowKeys: keys, onChange: (next, nextRows, info) => change(next, info, nextRows)};
-    }
+        return {...rest, selectedRowKeys: keys, onChange: (next, nextRows, info) => change(next, info, nextRows)};
+    }, [selection, keys, change, renderOwner]);
+    const getKeys = useCallback(() => [...snapshot.current.keys], []);
+    const getRows = useCallback(() => [...snapshot.current.rows], []);
+    const actions = useMemo(() => typeof selection?.actions === "function"
+        ? selection.actions(keys, rows) : selection?.actions || [], [selection, keys, rows, renderOwner]);
     return {
         rowSelection,
         keys,
         rows,
-        actions: typeof selection?.actions === "function" ? selection.actions(keys, rows) : selection?.actions || [],
+        actions,
         clearDisabled: selection?.clearDisabled,
         clear,
         setKeys,
         selectAll,
         invert,
-        getKeys: () => [...snapshot.current.keys],
-        getRows: () => [...snapshot.current.rows],
+        getKeys,
+        getRows,
     };
 }
 
@@ -1157,7 +1173,8 @@ function useTableFilters(filters?: TableFilterConfig[]) {
                 options: filter.allLabel !== false && !options.some((option) => option.value === "")
                     ? [{value: "", label: filter.allLabel ?? "全部"}, ...options] : options,
                 onChange: (value) => {
-                    if (filter.value === undefined) setValues((current) => ({...current, [filter.name]: {type: "select", value}}));
+                    if (filter.value === undefined) setValues((current) => current[filter.name]?.value === value
+                        ? current : {...current, [filter.name]: {type: "select", value}});
                     filter.onChange?.(value);
                 },
             });
@@ -1175,7 +1192,8 @@ function useTableFilters(filters?: TableFilterConfig[]) {
                 showSelectedLabel: filter.showSelectedLabel,
                 tooltip: filter.tooltip,
                 onChange: (value) => {
-                    if (filter.value === undefined) setValues((current) => ({...current, [filter.name]: {type: "date", value}}));
+                    if (filter.value === undefined) setValues((current) => current[filter.name]?.value === value
+                        ? current : {...current, [filter.name]: {type: "date", value}});
                     filter.onChange?.(value);
                 },
             });
@@ -1244,15 +1262,21 @@ const collectScrollPositions = (root: HTMLElement | null): ScrollPosition[] => {
 };
 
 const restoreScrollPositions = (positions: ScrollPosition[]) => {
-    positions.forEach(({element, left, top, stickToEnd}) => {
-        if (!element.isConnected) return;
+    // 先统一读取布局，再恢复滚动，避免祖先容器之间反复触发布局计算。
+    const targets = positions.filter(({element}) => element.isConnected).map(({element, left, top, stickToEnd}) => {
         const maxTop = Math.max(0, element.scrollHeight - element.clientHeight);
+        return {element, left, top: stickToEnd ? maxTop : Math.min(top, maxTop)};
+    });
+    targets.forEach(({element, left, top}) => {
         element.scrollLeft = left;
-        element.scrollTop = stickToEnd ? maxTop : Math.min(top, maxTop);
+        element.scrollTop = top;
     });
 };
 
-const PageTable = <RecordType extends object = any>(props: PageTableProps<RecordType>, ref: React.ForwardedRef<PageTableRef<RecordType>>) => {
+const PageTableContent = <RecordType extends object = any>({ownerProps: props, tableRef: ref}: {
+    ownerProps: PageTableProps<RecordType>;
+    tableRef: React.ForwardedRef<PageTableRef<RecordType>>;
+}) => {
     const {
         hero, toolbar, search, filters, contentBar, rowSelection, pagination, scrollToTopOnPageChange = false, paginationAffix = false, ariaLabel, rootClassName = "", rootStyle, empty, emptyContent,
         tableRender, request, params, defaultPage, defaultPageSize, defaultSort, manualRequest, requestEnabled,
@@ -1264,7 +1288,7 @@ const PageTable = <RecordType extends object = any>(props: PageTableProps<Record
     const searchConfig: TableSearchConfig | undefined = search === false ? undefined : search === true ? {} : search ?? (toolbar ? toolbar.search : undefined);
     const filter = useTableFilters(filters);
     const data = useTableData({...props, search: searchConfig, params: {...params, ...filter.params}});
-    const selection = useTableSelection(data.data, rowKey, rowSelection);
+    const selection = useTableSelection(data.data, rowKey, rowSelection, props);
     const selectedKeys = selection.keys;
     const scrollToTop = useCallback(() => {
         const panel = rootRef.current?.querySelector<HTMLElement>(".ui-table-data");
@@ -1370,10 +1394,10 @@ const PageTable = <RecordType extends object = any>(props: PageTableProps<Record
             return {...column, sortOrder: data.sort[String(field)] || null};
         });
         return sortColumns(tableProps.columns);
-    }, [Boolean(request), tableProps.columns, data.sort]);
+    }, [Boolean(request), tableProps.columns, data.sort, props]);
     const table = showEmpty ? <div className={styles.state} role="status">
         {spinning ? <Spin/> : emptyContent ?? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无数据"/>}
-    </div> : <DataTable<RecordType> {...tableProps} columns={columns} dataSource={data.data} loading={data.loading}
+    </div> : <MemoDataTable<RecordType> {...tableProps} renderOwner={props} columns={columns} dataSource={data.data} loading={data.loading}
                             rowKey={rowKey} rowSelection={selection.rowSelection} onSortChange={data.changeSort}/>;
     const paginationContent = pagination !== false && data.total > 0 ? (
         <nav className="ui-table-pagination" aria-label="表格分页">
@@ -1452,5 +1476,9 @@ const PageTable = <RecordType extends object = any>(props: PageTableProps<Record
         </div>
     );
 };
+
+const PageTable = <RecordType extends object = any>(props: PageTableProps<RecordType>, ref: React.ForwardedRef<PageTableRef<RecordType>>) => (
+    <PageTableContent ownerProps={props} tableRef={ref}/>
+);
 
 export default forwardRef(PageTable) as <RecordType extends object = any>(props: PageTableProps<RecordType> & React.RefAttributes<PageTableRef<RecordType>>) => React.ReactElement;

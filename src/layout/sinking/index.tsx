@@ -3,7 +3,7 @@ import Header from "../header";
 import Sider from "../sider";
 import BreadCrumb from "../../breadcrumb";
 import {createStyles, useResponsive, useTheme} from "antd-style";
-import React, {forwardRef, useImperativeHandle, useState} from "react";
+import React, {forwardRef, useCallback, useImperativeHandle, useRef, useState} from "react";
 import {MenuFoldOutlined, MenuUnfoldOutlined} from "@ant-design/icons";
 import {App, Button, Drawer, Layout, Watermark, Spin} from "antd";
 
@@ -202,12 +202,14 @@ export interface SinKingRef {
     toggleCollapsedMenu?: () => void; // 切换菜单折叠/展开状态
 }
 
+const emptyBreadCrumbItems: BreadCrumbItem[] = [];
+
 const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref): any => {
     let {
         loading = false,
         rootClassName,
         breadCrumb = true,
-        breadCrumbItems = [],
+        breadCrumbItems = emptyBreadCrumbItems,
         hideBreadCrumb = false,
         menus,
         menuClassNames,
@@ -263,6 +265,22 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
         cx
     } = useLayoutStyles();
     const {mobile, md} = useResponsive();
+    // 每次读取路由内容，兼容调用方原地更新；路径相同时复用结果引用。
+    const nextRoutePaths: any[] = Array.isArray(matchedRoutes)
+        ? (typeof matchedRoutes[0] === 'string'
+            ? [...matchedRoutes]
+            : matchedRoutes.map((route: any) => route?.pathname || route))
+        : [];
+    const routePathsRef = useRef<any[]>([]);
+    if (routePathsRef.current.length !== nextRoutePaths.length ||
+        nextRoutePaths.some((path, index) => path !== routePathsRef.current[index])) {
+        routePathsRef.current = nextRoutePaths;
+    }
+    const routePaths = routePathsRef.current;
+    const handleMenuClick = useCallback((item: any) => {
+        setOpen(false);
+        onMenuClick?.(item);
+    }, [onMenuClick]);
     const menuBtnOnClick = () => {
         let status: boolean;
         if ((layout === 'inline' && mobile) || (layout === 'horizontal' && !md)) {
@@ -322,13 +340,6 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
     const getSider = (mode: string) => {
         const layoutMode = mode === "horizontal" ? mode : "inline";
         const theme = menuTheme === "dark" ? menuTheme : "light";
-        // 转换 matchedRoutes 为 string[] 格式（如果不是的话）
-        const routePaths = Array.isArray(matchedRoutes)
-            ? (typeof matchedRoutes[0] === 'string'
-                ? matchedRoutes
-                : matchedRoutes.map((route: any) => route?.pathname || route))
-            : [];
-
         return <Sider classNames={menuClassNames}
                       headerClassNames={menuHeaderClassNames}
                       layout={layoutMode}
@@ -344,10 +355,7 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
                       menuBottomBtnText={menuBottomBtnText}
                       onMenuBottomBtnClick={onMenuBottomBtnClick}
                       menus={menus}
-                      onMenuClick={(item) => {
-                          setOpen(false);
-                          onMenuClick?.(item);
-                      }}/>;
+                      onMenuClick={handleMenuClick}/>;
     }
 
     /**

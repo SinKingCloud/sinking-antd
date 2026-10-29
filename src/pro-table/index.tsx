@@ -3,6 +3,8 @@
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState} from "react";
 import {createStyles} from "antd-style";
 import {
+    App,
+    message as antdMessage,
     Button,
     Card,
     Col,
@@ -269,7 +271,7 @@ const useContainerResponsive = (containerRef: React.RefObject<HTMLDivElement | n
         const container = containerRef.current;
         if (!container) return;
 
-        const getBreakpoint = (width: number) => width < 576 ? 0 : width < 768 ? 1 : width < 992 ? 2 : width < 1200 ? 3 : width < 1600 ? 4 : 5;
+        const getBreakpoint = (width: number) => width < 576 ? 0 : width < 768 ? 1 : width < 992 ? 2 : 3;
         let currentBreakpoint = getBreakpoint(container.clientWidth);
         let timeout: ReturnType<typeof setTimeout> | undefined;
         setBreakpoint(currentBreakpoint);
@@ -324,8 +326,13 @@ const AffixCard = ({affix, filterClassName, offsetTop, offsetBottom, className, 
     return affix ? <Affix offsetTop={offsetTop} offsetBottom={offsetBottom} onChange={onAffixChange}>{content}</Affix> : content;
 };
 
-const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): any => {
-    const {styles} = useStyles();
+const ProTableContent = ({ownerProps: props, tableRef: ref, styles}: {
+    ownerProps: ProTableProps;
+    tableRef: React.ForwardedRef<ProTableRef>;
+    styles: ReturnType<typeof useStyles>["styles"];
+}) => {
+    const app = App.useApp();
+    const message = typeof app.message?.error === "function" ? app.message : antdMessage;
     const defaults = useMemo(() => ({
         columns: [] as ProColumns[],
         tableProps: {} as TableProps<any>,
@@ -336,6 +343,7 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
     const containerRef = useRef<HTMLDivElement>(null);
     const device = useContainerResponsive(containerRef);
     const requestRef = useRef<any>(null);
+    const requestVersion = useRef(0);
     const {
         title = undefined, // 表格标题
         extra = undefined, // 表格额外内容
@@ -708,8 +716,10 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
     }, [columns, renderTableCell]);
 
     requestRef.current = request;
+    const hasRequest = Boolean(request);
 
     const requestData = useCallback(() => {
+        const version = ++requestVersion.current;
         const currentRequest = requestRef.current;
         if (!currentRequest) {
             setLoading(false);
@@ -720,19 +730,28 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
         param.current = page;
         param.pageSize = pageSize;
         const sorter = {...sort};
-        currentRequest(param, sorter).then((res: any) => {
-            if (res?.success) {
-                setData(res?.data || []);
-                setTotal(res?.total || 0);
+        void (async () => {
+            try {
+                const res = await currentRequest(param, sorter);
+                if (version !== requestVersion.current) return;
+                if (res?.success) {
+                    setData(res?.data || []);
+                    setTotal(res?.total || 0);
+                }
+            } catch (reason) {
+                if (version !== requestVersion.current) return;
+                const error = reason instanceof Error ? reason : new Error("获取列表失败");
+                message.error(error.message);
+            } finally {
+                if (version === requestVersion.current) setLoading(false);
             }
-        }).finally(() => {
-            setLoading(false);
-        });
-    }, [params, page, pageSize, sort]);
+        })();
+    }, [params, page, pageSize, sort, message]);
 
     useEffect(() => {
         requestData();
-    }, [requestData]);
+        return () => { requestVersion.current += 1; };
+    }, [requestData, hasRequest]);
 
     const getTableExtra = useMemo(() => {
         if (!extraRefreshBtn && !extra) {
@@ -1002,6 +1021,12 @@ const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref): a
             </Col>}
         </Row>
     );
+};
+
+// 请求、分页和选中状态在内容层更新，不重复计算整套样式。
+const ProTableComponent = forwardRef<ProTableRef, ProTableProps>((props, ref) => {
+    const {styles} = useStyles();
+    return <ProTableContent ownerProps={props} tableRef={ref} styles={styles}/>;
 });
 
 export default ProTableComponent;

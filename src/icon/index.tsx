@@ -41,7 +41,7 @@
 import React, {createContext, useContext, useMemo} from 'react';
 import {createFromIconfontCN} from '@ant-design/icons';
 import * as AntdIcons from '@ant-design/icons';
-import {createStyles} from 'antd-style';
+import {createStyles, css} from 'antd-style';
 
 /**
  * 全局 iconfont 地址配置
@@ -99,13 +99,13 @@ export const IconFontProvider: React.FC<IconFontProviderProps> = ({iconfontUrl, 
 /**
  * 样式
  */
-const useStyles: any = createStyles(() => ({
-    iconWrapper: {
+const useStyles: any = createStyles({
+    iconWrapper: css({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-    }
-}));
+    })
+});
 
 /**
  * Icon 组件属性

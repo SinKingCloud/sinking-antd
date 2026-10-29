@@ -1,7 +1,25 @@
 import React, {createContext, useCallback, useContext, useMemo, useState, ReactNode} from 'react';
-import {ThemeProvider, ThemeMode} from 'antd-style';
+import {StyleProvider, ThemeProvider, ThemeMode} from 'antd-style';
 import {theme} from 'antd';
 import Antd from "../antd";
+
+// 禁用也标记为已处理，避免内层 Layout / Body 再建立样式缓存。
+const StyleBoundaryContext = createContext(false);
+
+export type StyleBoundaryProps = {
+    enabled?: boolean;
+    children?: React.ReactNode;
+};
+
+export const StyleBoundary: React.FC<StyleBoundaryProps> = ({enabled = true, children}) => {
+    const inherited = useContext(StyleBoundaryContext);
+    if (inherited) return children;
+
+    return <StyleBoundaryContext.Provider value={true}>
+        {enabled ? <StyleProvider prefix="sinking-antd" speedy>{children}</StyleProvider> : children}
+    </StyleBoundaryContext.Provider>;
+};
+
 
 // 获取风格
 const getDefaultTheme = (color: string, radius: number): any => {
@@ -25,7 +43,7 @@ const getCompactTheme = (color: string, radius: number): any => {
  * 获取主题模式
  */
 const getMode = (): ThemeMode => {
-    const mode = localStorage?.getItem("theme")
+    const mode = typeof localStorage === "undefined" ? null : localStorage.getItem("theme");
     if (mode == "light" || mode == "dark") {
         return mode as ThemeMode;
     }
@@ -37,7 +55,7 @@ const getMode = (): ThemeMode => {
  * @param mode 模式
  */
 const setModeToStorage = (mode: string): void => {
-    localStorage?.setItem("theme", mode);
+    if (typeof localStorage !== "undefined") localStorage.setItem("theme", mode);
 }
 
 /**
@@ -86,6 +104,7 @@ export const useTheme = (): ThemeContextType | undefined => {
  * 主题组件属性
  */
 export type ThemeProps = {
+    styleProvider?: boolean; // 默认共享极速样式；外部原生 StyleProvider 配置时设为 false
     theme?: any; // 自定义主题配置对象（可选，覆盖默认主题）
     mode?: ThemeMode; // 自定义主题模式（可选，覆盖默认模式）
     appearance?: any; // 自定义外观（可选，控制亮色/暗色）
@@ -96,6 +115,7 @@ export type ThemeProps = {
 // 主题 Provider 组件（合并后的统一组件）
 const Theme: React.FC<ThemeProps> = ({
                                          children,
+                                         styleProvider,
                                          theme: customTheme,
                                          mode: customMode,
                                          appearance: customAppearance,
@@ -105,13 +125,15 @@ const Theme: React.FC<ThemeProps> = ({
     if (existingContext && !customTheme && !customMode && !customAppearance && !onAppearanceChange) {
         return children;
     }
-    return <ThemeProviderInner
-        theme={customTheme}
-        mode={customMode}
-        appearance={customAppearance}
-        onAppearanceChange={onAppearanceChange}>
-        {children}
-    </ThemeProviderInner>;
+    return <StyleBoundary enabled={styleProvider}>
+        <ThemeProviderInner
+            theme={customTheme}
+            mode={customMode}
+            appearance={customAppearance}
+            onAppearanceChange={onAppearanceChange}>
+            {children}
+        </ThemeProviderInner>
+    </StyleBoundary>;
 };
 
 const ThemeProviderInner: React.FC<ThemeProps> = ({
@@ -129,25 +151,39 @@ const ThemeProviderInner: React.FC<ThemeProps> = ({
     const darkMode: ThemeMode = "dark";
     const autoMode: ThemeMode = "auto";
 
+    const setPresetTheme = useCallback((compact: boolean) => {
+        setThemes((current: any) => {
+            const next = (compact ? getCompactTheme : getDefaultTheme)(current?.token?.colorPrimary, current?.token?.borderRadius);
+            // 相同预设复用引用，额外配置仍会被重置。
+            if (!current || Object.keys(current).length !== Object.keys(next).length) return next;
+            const currentToken = current.token;
+            const nextToken = next.token;
+            if (!currentToken || Object.keys(currentToken).length !== Object.keys(nextToken).length ||
+                Object.keys(nextToken).some((key) => !Object.prototype.hasOwnProperty.call(currentToken, key) ||
+                    !Object.is(currentToken[key], nextToken[key]))) return next;
+            const currentAlgorithm = current.algorithm;
+            const nextAlgorithm = next.algorithm;
+            return currentAlgorithm === nextAlgorithm || (Array.isArray(currentAlgorithm) && Array.isArray(nextAlgorithm) &&
+                currentAlgorithm.length === nextAlgorithm.length &&
+                currentAlgorithm.every((algorithm, index) => algorithm === nextAlgorithm[index])) ? current : next;
+        });
+    }, []);
+
     /**
      * 设置默认主题
      */
-    const setDefaultTheme = useCallback(() => {
-        setThemes((current: any) => getDefaultTheme(current?.token?.colorPrimary, current?.token?.borderRadius));
-    }, []);
+    const setDefaultTheme = useCallback(() => setPresetTheme(false), [setPresetTheme]);
 
     /**
      * 设置紧凑主题
      */
-    const setCompactTheme = useCallback(() => {
-        setThemes((current: any) => getCompactTheme(current?.token?.colorPrimary, current?.token?.borderRadius));
-    }, []);
+    const setCompactTheme = useCallback(() => setPresetTheme(true), [setPresetTheme]);
 
     /**
      * 设置主题颜色
      */
     const setColor = useCallback((color: string) => {
-        setThemes((current: any) => ({
+        setThemes((current: any) => current?.token?.colorPrimary === color && current?.token?.colorInfo === color ? current : ({
             ...current,
             token: {...current.token, colorPrimary: color, colorInfo: color},
         }));
@@ -157,7 +193,7 @@ const ThemeProviderInner: React.FC<ThemeProps> = ({
      * 设置主题圆角
      */
     const setRadius = useCallback((radius: number) => {
-        setThemes((current: any) => ({
+        setThemes((current: any) => Object.is(current?.token?.borderRadius, radius) ? current : ({
             ...current,
             token: {...current.token, borderRadius: radius},
         }));

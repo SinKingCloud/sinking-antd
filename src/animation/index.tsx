@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {createStyles} from "antd-style";
+import {createStyles, css} from "antd-style";
 
 export type AnimationProps = {
     animate?: string;
@@ -13,7 +13,7 @@ export const Animate = {
     FadeDown: "fadeInDown",
 } as const;
 
-const useStyles = createStyles(({css}): any => ({
+const useStyles = createStyles({
     fadeInUp: css`
         @keyframes fadeInUp {
             0% {
@@ -42,13 +42,13 @@ const useStyles = createStyles(({css}): any => ({
         animation-name: fadeInDown;
         animation-duration: 0.5s;
     `,
-}));
+} as Record<string, ReturnType<typeof css>>);
 
 const Animation: React.FC<AnimationProps> = React.memo(({animate, style, children}) => {
     const {styles} = useStyles();
     
     const animationClass = useMemo(() => {
-        return animate && animate !== Animate.None ? styles?.[animate] : null;
+        return animate && animate !== Animate.None ? styles?.[animate] : undefined;
     }, [animate, styles]);
     
     return (

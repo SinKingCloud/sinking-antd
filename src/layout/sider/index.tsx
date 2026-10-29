@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useMemo, useCallback} from 'react';
 import {ConfigProvider, Menu, Layout} from 'antd';
-import {createStyles, useResponsive, useTheme} from "antd-style";
+import {createStyles, useResponsive} from "antd-style";
 import {Icon} from "../../icon";
 
 const useStyles = createStyles(({token, isDarkMode}): any => {
@@ -123,7 +123,10 @@ export type SiderProps = {
     theme?: string; // 菜单主题：'light' | 'dark'
 };
 
-const Sider: React.FC<SiderProps> = React.memo((props) => {
+const SiderContent = ({ownerProps: props, styleResult}: {
+    ownerProps: SiderProps;
+    styleResult: ReturnType<typeof useStyles>;
+}) => {
     const {
         collapsed,
         pathname,
@@ -143,10 +146,9 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
         theme = "light"
     } = props;
     const {mobile} = useResponsive();
-    const token = useTheme();
-    const {styles: {left, content, menu, menuTop, menuBottom, menu2, darkColor, darkBorderTop}, cx} = useStyles();
-    const [selectedKeys, setSelectedKeys] = useState<any[]>([]);
-    const [stateOpenKeys, setStateOpenKeys] = useState<any[]>([]);
+    const {styles: {left, content, menu, menuTop, menuBottom, menu2, darkColor, darkBorderTop}, cx, theme: token} = styleResult;
+    const [selectedKeys, setSelectedKeys] = useState<any[]>(() => pathname ? [pathname] : []);
+    const [stateOpenKeys, setStateOpenKeys] = useState<any[]>(() => pathname ? matchedRoutes ?? [] : []);
 
     useEffect(() => {
         if (pathname) {
@@ -278,6 +280,12 @@ const Sider: React.FC<SiderProps> = React.memo((props) => {
             )}
         </>
     );
+};
+
+// 选中和展开菜单时复用样式，主题变化仍由样式 hook 同步。
+const Sider: React.FC<SiderProps> = React.memo((props) => {
+    const styleResult = useStyles();
+    return <SiderContent ownerProps={props} styleResult={styleResult}/>;
 });
 
 export default Sider;

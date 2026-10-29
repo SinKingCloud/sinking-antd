@@ -138,7 +138,9 @@ const ModalTableContent = <RecordType extends object = any>({tableRef, ...props}
     );
 };
 
-const ModalTable = <RecordType extends object = any>({
+const ModalTableState = <RecordType extends object = any>({
+    styles,
+    modalRef: ref,
     title,
     width,
     open: controlledOpen,
@@ -152,8 +154,10 @@ const ModalTable = <RecordType extends object = any>({
     rootStyle,
     requestEnabled,
     ...tableProps
-}: ModalTableProps<RecordType>, ref: React.ForwardedRef<ModalTableRef<RecordType>>) => {
-    const {styles} = useStyles();
+}: ModalTableProps<RecordType> & {
+    styles: ReturnType<typeof useStyles>["styles"];
+    modalRef: React.ForwardedRef<ModalTableRef<RecordType>>;
+}) => {
     const [internalOpen, setInternalOpen] = useState(false);
     const [opened, setOpened] = useState(false);
     const open = controlledOpen ?? internalOpen;
@@ -231,6 +235,12 @@ const ModalTable = <RecordType extends object = any>({
             </div>}
         </Modal>
     );
+};
+
+// 开关及动画状态不会重新生成弹窗样式。
+const ModalTable = <RecordType extends object = any>(props: ModalTableProps<RecordType>, ref: React.ForwardedRef<ModalTableRef<RecordType>>) => {
+    const {styles} = useStyles();
+    return <ModalTableState {...props} modalRef={ref} styles={styles}/>;
 };
 
 export default forwardRef(ModalTable) as <RecordType extends object = any>(props: ModalTableProps<RecordType> & React.RefAttributes<ModalTableRef<RecordType>>) => React.ReactElement;

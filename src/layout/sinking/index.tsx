@@ -2,7 +2,7 @@ import Footer from "../footer";
 import Header from "../header";
 import Sider from "../sider";
 import BreadCrumb from "../../breadcrumb";
-import {createStyles, useResponsive, useTheme} from "antd-style";
+import {createStyles, css, useResponsive} from "antd-style";
 import React, {forwardRef, useCallback, useImperativeHandle, useRef, useState} from "react";
 import {MenuFoldOutlined, MenuUnfoldOutlined} from "@ant-design/icons";
 import {App, Button, Drawer, Layout, Watermark, Spin} from "antd";
@@ -10,16 +10,14 @@ import {App, Button, Drawer, Layout, Watermark, Spin} from "antd";
 /**
  * Loading 加载样式
  */
-const useLoadingStyles = createStyles((): any => {
-    return {
-        body: {
-            width: "100%",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "80vh",
-        },
-    };
+const useLoadingStyles = createStyles({
+    body: css({
+        width: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "80vh",
+    }),
 });
 
 /**
@@ -158,6 +156,7 @@ export type BreadCrumbItem = {
  * 布局组件属性
  */
 export type LayoutProps = {
+    styleProvider?: boolean; // 默认共享极速样式；外部原生 StyleProvider 配置时设为 false
     ref?: React.Ref<SinKingRef>; // 组件引用
     rootClassName?: string; // 根元素自定义样式类名
     loading?: boolean; // 是否显示加载状态
@@ -204,7 +203,11 @@ export interface SinKingRef {
 
 const emptyBreadCrumbItems: BreadCrumbItem[] = [];
 
-const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref): any => {
+const LayoutContent = ({ownerProps: props, layoutRef: ref, styleResult}: {
+    ownerProps: any;
+    layoutRef: React.ForwardedRef<SinKingRef>;
+    styleResult: ReturnType<typeof useLayoutStyles>;
+}) => {
     let {
         loading = false,
         rootClassName,
@@ -237,7 +240,6 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
         waterMark = undefined,
         children
     } = props;
-    const systemTheme = useTheme();
     /*
      * 样式
      */
@@ -262,8 +264,9 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
             flowContent,
             layoutNormal
         },
-        cx
-    } = useLayoutStyles();
+        cx,
+        theme: systemTheme
+    } = styleResult;
     const {mobile, md} = useResponsive();
     // 每次读取路由内容，兼容调用方原地更新；路径相同时复用结果引用。
     const nextRoutePaths: any[] = Array.isArray(matchedRoutes)
@@ -447,5 +450,12 @@ const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: any, ref):
             {(loading && <Loading/>) || (layout !== "horizontal" ? LayoutNormal : LayoutFlow)}
         </App>
     );
+};
+
+// 折叠菜单、抽屉和断点更新不重复计算布局样式。
+const SinKing: React.FC<LayoutProps> = forwardRef<SinKingRef>((props: LayoutProps, ref) => {
+    const styleResult = useLayoutStyles();
+    return <LayoutContent ownerProps={props} layoutRef={ref} styleResult={styleResult}/>;
 });
+
 export default SinKing;

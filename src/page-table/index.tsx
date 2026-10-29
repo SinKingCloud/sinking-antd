@@ -269,13 +269,9 @@ const HeroGraphic = React.memo(({variant = "task"}: any): React.ReactNode => {
 });
 
 // ============ 内部展示组件 ============
-const useTableStyles = () => {
-    const theme = useTheme();
-    const compact = Boolean(theme?.isCompactTheme?.());
-    const dark = Boolean(theme?.isDarkMode?.() || theme?.isDarkTheme?.());
-    const params = useMemo(() => ({compact, dark}), [compact, dark]);
-    return useStyles(params);
-};
+// 一张表共用一份样式，筛选、搜索和分页更新时不重复计算整套 CSS。
+const TableStylesContext = React.createContext<ReturnType<typeof useStyles> | null>(null);
+const useTableStyles = () => React.useContext(TableStylesContext)!;
 
 interface PageTablePaginationProps {
     page: number;
@@ -1135,7 +1131,7 @@ function useTableSelection<RecordType extends object>(
 // ============ 筛选条件 ============
 type FilterState = Record<string, {type: TableFilterConfig["type"]; value?: string | [Dayjs, Dayjs] | null}>;
 
-function useTableFilters(filters?: TableFilterConfig[]) {
+function useTableFilters(filters?: TableFilterConfig[], renderOwner?: object) {
     const [values, setValues] = useState<FilterState>(() => Object.fromEntries((filters || []).map((filter) => [
         filter.name, {type: filter.type, value: filter.defaultValue ?? (filter.type === "select" ? undefined : null)},
     ])));
@@ -1156,49 +1152,52 @@ function useTableFilters(filters?: TableFilterConfig[]) {
         });
     }, [filters]);
 
-    const params: Record<string, unknown> = {};
-    const items: TableToolbarItem[] = [];
-    filters?.forEach((filter) => {
-        const stored = values[filter.name]?.type === filter.type ? values[filter.name].value : undefined;
-        if (filter.type === "select") {
-            const options = filter.options ?? Object.entries(filter.valueEnum || {}).map(([value, label]) => ({value, label}));
-            const value = filter.value ?? (stored as string | undefined) ?? filter.defaultValue
-                ?? (filter.allLabel === false ? options[0]?.value ?? "" : "");
-            Object.assign(params, filter.transform ? filter.transform(value) : {[filter.name]: value});
-            items.push({
-                type: "filter", key: `filter:${filter.name}`, hidden: filter.hidden,
-                value, icon: filter.icon || "FilterOutlined", ariaLabel: filter.label, disabled: filter.disabled,
-                label: filter.label, showSelectedLabel: filter.showSelectedLabel,
-                tooltip: filter.tooltip,
-                options: filter.allLabel !== false && !options.some((option) => option.value === "")
-                    ? [{value: "", label: filter.allLabel ?? "全部"}, ...options] : options,
-                onChange: (value) => {
-                    if (filter.value === undefined) setValues((current) => current[filter.name]?.value === value
-                        ? current : {...current, [filter.name]: {type: "select", value}});
-                    filter.onChange?.(value);
-                },
-            });
-        } else {
-            const value = filter.value !== undefined ? filter.value
-                : stored !== undefined ? stored as [Dayjs, Dayjs] | null : filter.defaultValue ?? null;
-            const [start, end] = filter.fields || [`${filter.name}_start`, `${filter.name}_end`];
-            Object.assign(params, filter.transform ? filter.transform(value) : {
-                [start]: value?.[0].startOf("day").format("YYYY-MM-DD HH:mm:ss") || "",
-                [end]: value?.[1].endOf("day").format("YYYY-MM-DD HH:mm:ss") || "",
-            });
-            items.push({
-                type: "date", key: `filter:${filter.name}`, hidden: filter.hidden,
-                value, ariaLabel: filter.label, disabled: filter.disabled, presets: filter.presets,
-                showSelectedLabel: filter.showSelectedLabel,
-                tooltip: filter.tooltip,
-                onChange: (value) => {
-                    if (filter.value === undefined) setValues((current) => current[filter.name]?.value === value
-                        ? current : {...current, [filter.name]: {type: "date", value}});
-                    filter.onChange?.(value);
-                },
-            });
-        }
-    });
+    const {params, items} = useMemo(() => {
+        const params: Record<string, unknown> = {};
+        const items: TableToolbarItem[] = [];
+        filters?.forEach((filter) => {
+            const stored = values[filter.name]?.type === filter.type ? values[filter.name].value : undefined;
+            if (filter.type === "select") {
+                const options = filter.options ?? Object.entries(filter.valueEnum || {}).map(([value, label]) => ({value, label}));
+                const value = filter.value ?? (stored as string | undefined) ?? filter.defaultValue
+                    ?? (filter.allLabel === false ? options[0]?.value ?? "" : "");
+                Object.assign(params, filter.transform ? filter.transform(value) : {[filter.name]: value});
+                items.push({
+                    type: "filter", key: `filter:${filter.name}`, hidden: filter.hidden,
+                    value, icon: filter.icon || "FilterOutlined", ariaLabel: filter.label, disabled: filter.disabled,
+                    label: filter.label, showSelectedLabel: filter.showSelectedLabel,
+                    tooltip: filter.tooltip,
+                    options: filter.allLabel !== false && !options.some((option) => option.value === "")
+                        ? [{value: "", label: filter.allLabel ?? "全部"}, ...options] : options,
+                    onChange: (value) => {
+                        if (filter.value === undefined) setValues((current) => current[filter.name]?.value === value
+                            ? current : {...current, [filter.name]: {type: "select", value}});
+                        filter.onChange?.(value);
+                    },
+                });
+            } else {
+                const value = filter.value !== undefined ? filter.value
+                    : stored !== undefined ? stored as [Dayjs, Dayjs] | null : filter.defaultValue ?? null;
+                const [start, end] = filter.fields || [`${filter.name}_start`, `${filter.name}_end`];
+                Object.assign(params, filter.transform ? filter.transform(value) : {
+                    [start]: value?.[0].startOf("day").format("YYYY-MM-DD HH:mm:ss") || "",
+                    [end]: value?.[1].endOf("day").format("YYYY-MM-DD HH:mm:ss") || "",
+                });
+                items.push({
+                    type: "date", key: `filter:${filter.name}`, hidden: filter.hidden,
+                    value, ariaLabel: filter.label, disabled: filter.disabled, presets: filter.presets,
+                    showSelectedLabel: filter.showSelectedLabel,
+                    tooltip: filter.tooltip,
+                    onChange: (value) => {
+                        if (filter.value === undefined) setValues((current) => current[filter.name]?.value === value
+                            ? current : {...current, [filter.name]: {type: "date", value}});
+                        filter.onChange?.(value);
+                    },
+                });
+            }
+        });
+        return {params, items};
+    }, [filters, values, renderOwner]);
 
     return {
         items,
@@ -1286,7 +1285,7 @@ const PageTableContent = <RecordType extends object = any>({ownerProps: props, t
     const rootRef = useRef<HTMLDivElement>(null);
     const paginationScrollRef = useRef<PaginationScrollSnapshot | null>(null);
     const searchConfig: TableSearchConfig | undefined = search === false ? undefined : search === true ? {} : search ?? (toolbar ? toolbar.search : undefined);
-    const filter = useTableFilters(filters);
+    const filter = useTableFilters(filters, props);
     const data = useTableData({...props, search: searchConfig, params: {...params, ...filter.params}});
     const selection = useTableSelection(data.data, rowKey, rowSelection, props);
     const selectedKeys = selection.keys;
@@ -1477,8 +1476,18 @@ const PageTableContent = <RecordType extends object = any>({ownerProps: props, t
     );
 };
 
-const PageTable = <RecordType extends object = any>(props: PageTableProps<RecordType>, ref: React.ForwardedRef<PageTableRef<RecordType>>) => (
-    <PageTableContent ownerProps={props} tableRef={ref}/>
-);
+const PageTable = <RecordType extends object = any>(props: PageTableProps<RecordType>, ref: React.ForwardedRef<PageTableRef<RecordType>>) => {
+    const theme = useTheme();
+    const compact = Boolean(theme?.isCompactTheme?.());
+    const dark = Boolean(theme?.isDarkMode?.() || theme?.isDarkTheme?.());
+    const params = useMemo(() => ({compact, dark}), [compact, dark]);
+    const styles = useStyles(params);
+
+    return (
+        <TableStylesContext.Provider value={styles}>
+            <PageTableContent ownerProps={props} tableRef={ref}/>
+        </TableStylesContext.Provider>
+    );
+};
 
 export default forwardRef(PageTable) as <RecordType extends object = any>(props: PageTableProps<RecordType> & React.RefAttributes<PageTableRef<RecordType>>) => React.ReactElement;

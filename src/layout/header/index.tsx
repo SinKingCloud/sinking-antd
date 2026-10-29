@@ -1,20 +1,18 @@
 import React from "react";
-import {createStyles} from "antd-style";
+import {createStyles, css} from "antd-style";
 
-const useStyles = createStyles(({css}): any => {
-    return {
-        box: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between"
-        },
-        right: css`
+const useStyles = createStyles({
+    box: css({
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between"
+    }),
+    right: css`
             z-index: 2;
         `,
-        left: css`
+    left: css`
             z-index: 2;
         `
-    };
 });
 export type HeaderProps = {
     right?: any;//右侧

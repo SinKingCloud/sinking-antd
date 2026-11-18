@@ -311,7 +311,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
             &.ant-input-affix-wrapper {
                 height: ${compact ? 30 : 34}px;
                 padding: 0 ${compact ? 9 : 12}px;
-                border-radius: ${token.borderRadiusSM}px;
+                border-radius: ${token.borderRadius}px;
             }
 
             .ant-input-prefix {
@@ -349,7 +349,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
             align-items: center;
             height: ${compact ? 30 : 34}px;
             border: 1px solid transparent;
-            border-radius: ${token.borderRadiusSM}px;
+            border-radius: ${token.borderRadius}px;
             background: ${token.colorFillTertiary};
             transition: background-color .16s ease, border-color .16s ease;
 
@@ -410,7 +410,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
             height: ${compact ? 30 : 34}px;
             padding: 0 ${compact ? 7 : 10}px;
             border: 1px solid transparent;
-            border-radius: ${token.borderRadiusSM}px;
+            border-radius: ${token.borderRadius}px;
             outline: none;
             background: ${token.colorFillQuaternary};
             color: ${token.colorTextSecondary};
@@ -485,7 +485,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
                 flex: none;
                 gap: 5px;
                 border: 1px solid transparent;
-                border-radius: ${token.borderRadiusSM}px;
+                border-radius: ${token.borderRadius}px;
                 background: ${token.colorFillQuaternary};
                 color: ${token.colorTextTertiary};
                 font-size: ${compact ? 11 : 12}px;
@@ -540,7 +540,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
                 padding: 0;
                 flex: none;
                 border: 1px solid transparent;
-                border-radius: ${token.borderRadiusSM}px;
+                border-radius: ${token.borderRadius}px;
                 background: ${token.colorFillQuaternary};
                 color: ${token.colorTextSecondary};
                 box-shadow: none;
@@ -591,7 +591,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
                 min-height: ${compact ? 24 : 30}px !important;
                 margin: 0 !important;
                 padding: 0 6px !important;
-                border-radius: ${token.borderRadiusSM}px !important;
+                border-radius: ${token.borderRadius}px !important;
                 color: ${token.colorTextSecondary};
                 font-size: ${compact ? 11 : 12}px !important;
                 line-height: ${compact ? 24 : 30}px !important;
@@ -880,7 +880,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
                 height: ${compact ? 22 : 26}px;
                 margin-inline-end: 4px;
                 border: 0;
-                border-radius: ${token.borderRadiusSM}px;
+                border-radius: ${token.borderRadius}px;
                 background: transparent;
                 color: ${token.colorTextSecondary};
                 font-size: ${compact ? 11 : 12}px;
@@ -916,8 +916,11 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
                 width: ${compact ? 30 : 34}px;
                 height: ${compact ? 22 : 26}px;
                 margin-inline: 4px;
-                border-radius: ${token.borderRadiusSM}px;
                 font-size: ${compact ? 11 : 12}px;
+            }
+
+            &&.ant-pagination-small .ant-pagination-options-quick-jumper input {
+                border-radius: ${token.borderRadius}px;
             }
 
             @container data-table-pagination (max-width: 767px) {
@@ -934,6 +937,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
         pageSizeSelect: css`
             && {
                 height: ${compact ? 22 : 26}px;
+                border-radius: ${token.borderRadius}px;
                 color: ${token.colorTextSecondary} !important;
                 font-size: ${compact ? 11 : 12}px;
             }
@@ -952,7 +956,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
             && .ant-select-item {
                 min-height: ${compact ? 24 : 28}px;
                 padding: 3px 6px;
-                border-radius: ${token.borderRadiusSM}px;
+                border-radius: ${token.borderRadius}px;
                 color: ${token.colorTextSecondary};
                 font-size: ${compact ? 11 : 12}px;
             }

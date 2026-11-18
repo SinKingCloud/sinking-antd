@@ -954,6 +954,7 @@ const useStyles = createStyles(({css, token, isDarkMode}: any, props: any = {}) 
             }
 
             && .ant-select-item {
+                align-items: center;
                 min-height: ${compact ? 24 : 28}px;
                 padding: 3px 6px;
                 border-radius: ${token.borderRadius}px;
